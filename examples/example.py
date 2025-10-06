@@ -8,14 +8,14 @@ from vcd2image.core.multi_renderer import MultiFigureRenderer
 def example1():
     """Check the path name of the signal in the VCD file."""
 
-    extractor = WaveExtractor('examples/timer.vcd', '', [])
+    extractor = WaveExtractor("examples/timer.vcd", "", [])
     extractor.print_props()
 
 
-if __name__ == '__main__':
-    print('')
-    print('Example 1')
-    print('----------------------------------------')
+if __name__ == "__main__":
+    print("")
+    print("Example 1")
+    print("----------------------------------------")
     example1()
 
     # Example 1
@@ -37,23 +37,25 @@ if __name__ == '__main__':
 
 def example2():
     """Extract the signal values specified in the path list
-       and output WaveJSON string to the file."""
+    and output WaveJSON string to the file."""
 
-    path_list = ['tb_timer/u_timer/clock',
-                 'tb_timer/u_timer/reset',
-                 'tb_timer/u_timer/pulse',
-                 'tb_timer/u_timer/count_eq11',
-                 'tb_timer/u_timer/count']
+    path_list = [
+        "tb_timer/u_timer/clock",
+        "tb_timer/u_timer/reset",
+        "tb_timer/u_timer/pulse",
+        "tb_timer/u_timer/count_eq11",
+        "tb_timer/u_timer/count",
+    ]
 
-    extractor = WaveExtractor('examples/timer.vcd', 'examples/timer.json', path_list)
+    extractor = WaveExtractor("examples/timer.vcd", "examples/timer.json", path_list)
     extractor.execute()
 
 
-if __name__ == '__main__':
-    print('')
-    print('')
-    print('Example 2')
-    print('----------------------------------------')
+if __name__ == "__main__":
+    print("")
+    print("")
+    print("Example 2")
+    print("----------------------------------------")
     example2()
 
     # Example 2
@@ -74,27 +76,29 @@ if __name__ == '__main__':
 
 def example3():
     """Set sampling duration and display format.
-       The result is displayed on standard output."""
+    The result is displayed on standard output."""
 
-    path_list = ['tb_timer/u_timer/clock',
-                 'tb_timer/u_timer/reset',
-                 'tb_timer/u_timer/pulse',
-                 'tb_timer/u_timer/count_eq11',
-                 'tb_timer/u_timer/count']
+    path_list = [
+        "tb_timer/u_timer/clock",
+        "tb_timer/u_timer/reset",
+        "tb_timer/u_timer/pulse",
+        "tb_timer/u_timer/count_eq11",
+        "tb_timer/u_timer/count",
+    ]
 
-    extractor = WaveExtractor('examples/timer.vcd', '', path_list)
+    extractor = WaveExtractor("examples/timer.vcd", "", path_list)
     extractor.wave_chunk = 10
     extractor.start_time = 100
     extractor.end_time = 500
-    extractor.wave_format('tb_timer/u_timer/count', 'u')
+    extractor.wave_format("tb_timer/u_timer/count", "u")
     extractor.execute()
 
 
-if __name__ == '__main__':
-    print('')
-    print('')
-    print('Example 3')
-    print('----------------------------------------')
+if __name__ == "__main__":
+    print("")
+    print("")
+    print("Example 3")
+    print("----------------------------------------")
     example3()
 
     # Example 3
@@ -124,14 +128,14 @@ def example4():
     """Auto plotting: Generate single organized plot with all signals."""
 
     renderer = MultiFigureRenderer()
-    renderer.render_lazy_plot('examples/timer.vcd', 'examples/timer_auto.png')
+    renderer.render_lazy_plot("examples/timer.vcd", "examples/timer_auto.png")
 
 
-if __name__ == '__main__':
-    print('')
-    print('')
-    print('Example 4')
-    print('----------------------------------------')
+if __name__ == "__main__":
+    print("")
+    print("")
+    print("Example 4")
+    print("----------------------------------------")
     example4()
 
     # Example 4
@@ -144,18 +148,18 @@ def example5():
 
     renderer = MultiFigureRenderer()
     renderer.render_categorized_figures(
-        vcd_file='examples/timer.vcd',
-        output_dir='examples/figures',
-        base_name='timer',
-        formats=['png', 'svg', 'html']
+        vcd_file="examples/timer.vcd",
+        output_dir="examples/figures",
+        base_name="timer",
+        formats=["png", "svg", "html"],
     )
 
 
-if __name__ == '__main__':
-    print('')
-    print('')
-    print('Example 5')
-    print('----------------------------------------')
+if __name__ == "__main__":
+    print("")
+    print("")
+    print("Example 5")
+    print("----------------------------------------")
     example5()
 
     # Example 5
