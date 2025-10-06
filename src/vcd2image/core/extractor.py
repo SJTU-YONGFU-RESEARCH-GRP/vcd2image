@@ -3,7 +3,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from .generator import WaveJSONGenerator
 from .models import SignalDef
@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 class WaveExtractor:
     """Extract signal values from VCD file and output in WaveJSON format."""
 
-    def __init__(self, vcd_file: str, json_file: str, path_list: List[str]) -> None:
+    def __init__(
+        self,
+        vcd_file: str,
+        json_file: str,
+        path_list: List[str],
+        path_dict: Optional[Dict[str, SignalDef]] = None,
+    ) -> None:
         """Initialize wave extractor.
 
         Extract signal values from VCD file and output in JSON format.
@@ -30,20 +36,22 @@ class WaveExtractor:
             vcd_file: Path to VCD file.
             json_file: Path to output JSON file (empty string for stdout).
             path_list: List of signal paths to extract.
+            path_dict: Pre-parsed signal dictionary (optional).
         """
         self.vcd_file = vcd_file
         self.json_file = json_file
-        self.path_list = [path.strip('/') for path in path_list]
+        self.path_list = [path.strip("/") for path in path_list]
         self.wave_chunk = 20
         self.start_time = 0
         self.end_time = 0
 
         # Initialize components
         self.parser = VCDParser(vcd_file)
-        self.path_dict: Optional[Dict[str, SignalDef]] = None
+        self.path_dict = path_dict
         self.fin = None
 
-        self._setup()
+        if not self.path_dict:
+            self._setup()
 
     def _setup(self) -> None:
         """Set up the extractor by parsing signal definitions."""
@@ -93,11 +101,11 @@ class WaveExtractor:
         """
         print(f"vcd_file  = '{self.vcd_file}'")
         print(f"json_file = '{self.json_file}'")
-        print("path_list = [", end='')
+        print("path_list = [", end="")
         for i, path in enumerate(self.path_list):
             if i != 0:
-                print("             ", end='')
-            print(f"'{path}'", end='')
+                print("             ", end="")
+            print(f"'{path}'", end="")
             if i != len(self.path_list) - 1:
                 print(",")
             else:
@@ -120,7 +128,7 @@ class WaveExtractor:
         Raises:
             ValueError: If format character is invalid.
         """
-        if fmt not in ('b', 'd', 'u', 'x', 'X'):
+        if fmt not in ("b", "d", "u", "x", "X"):
             raise ValueError(f"'{fmt}': Invalid format character.")
         if signal_path not in self.path_dict:
             raise ValueError(f"Signal path not found: {signal_path}")
@@ -139,12 +147,15 @@ class WaveExtractor:
         logger.info("Starting signal extraction and JSON generation")
 
         # Open VCD file and skip to dump section
-        fin = open(self.vcd_file, 'rt', encoding='utf-8')
+        logger.debug(f"Opening VCD file: {self.vcd_file}")
+        fin = open(self.vcd_file, "rt", encoding="utf-8")
 
         # Skip definitions section
         while True:
             line = fin.readline()
-            if not line or line.strip() == '$enddefinitions':
+            if not line:
+                raise ValueError("Unexpected end of file while looking for $enddefinitions")
+            if "$enddefinitions" in line:
                 break
 
         # Set up sampler and generator
@@ -167,11 +178,11 @@ class WaveExtractor:
         json_content = generator.generate_json(sample_groups)
 
         # Output JSON
-        if self.json_file == '':
+        if self.json_file == "":
             fout = sys.stdout
         else:
             logger.info(f"Creating WaveJSON file: {self.json_file}")
-            fout = open(self.json_file, 'wt', encoding='utf-8')
+            fout = open(self.json_file, "wt", encoding="utf-8")
 
         fout.write(json_content)
 

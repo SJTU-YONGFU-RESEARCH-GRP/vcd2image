@@ -41,14 +41,14 @@ class WaveRenderer:
         logger.info(f"Rendering {json_file} to {image_file}")
 
         # Read WaveJSON
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             wavejson = json.load(f)
 
         # Generate HTML with WaveDrom
         html_content = self._generate_html(wavejson)
 
         # Save HTML to temporary file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
             f.write(html_content)
             html_file = f.name
 
@@ -84,21 +84,21 @@ class WaveRenderer:
             await page.goto(f"file://{html_file}")
 
             # Wait for WaveDrom to render
-            await page.wait_for_selector('.waveform svg', timeout=10000)
+            await page.wait_for_selector(".waveform svg", timeout=10000)
 
             # Take screenshot
-            if image_path.suffix.lower() == '.png':
+            if image_path.suffix.lower() == ".png":
                 await page.screenshot(path=str(image_path), full_page=True)
-            elif image_path.suffix.lower() == '.pdf':
+            elif image_path.suffix.lower() == ".pdf":
                 await page.pdf(path=str(image_path))
             else:
                 # For SVG, we need to extract the SVG content
-                svg_element = await page.query_selector('.waveform svg')
+                svg_element = await page.query_selector(".waveform svg")
                 if svg_element:
                     svg_content = await svg_element.inner_html()
                     # Add SVG wrapper
                     full_svg = f'<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.1">\n{svg_content}\n</svg>'
-                    image_path.write_text(full_svg, encoding='utf-8')
+                    image_path.write_text(full_svg, encoding="utf-8")
                 else:
                     raise RuntimeError("Could not find SVG element in rendered page")
 
@@ -123,14 +123,14 @@ class WaveRenderer:
         logger.info(f"Generating HTML from {json_file} to {html_file}")
 
         # Read WaveJSON
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             wavejson = json.load(f)
 
         # Generate HTML with WaveDrom
         html_content = self._generate_html(wavejson)
 
         # Save HTML file
-        html_path.write_text(html_content, encoding='utf-8')
+        html_path.write_text(html_content, encoding="utf-8")
         logger.info(f"HTML saved to: {html_file}")
         return 0
 

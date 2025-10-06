@@ -37,7 +37,7 @@ class VCDParser:
         """
         logger.info(f"Parsing VCD file: {self.vcd_file}")
 
-        with open(self.vcd_file, 'rt', encoding='utf-8') as fin:
+        with open(self.vcd_file, "rt", encoding="utf-8") as fin:
             all_paths, path_dict = self._create_path_dict(fin)
 
         if path_list:
@@ -68,24 +68,24 @@ class VCDParser:
             if not words:
                 continue
 
-            if words[0] == '$enddefinitions':
+            if words[0] == "$enddefinitions":
                 return path_list, path_dict
 
-            if words[0] == '$scope':
+            if words[0] == "$scope":
                 hier_list.append(words[2])
-            elif words[0] == '$var':
-                path = '/'.join(hier_list + [words[4]])
+            elif words[0] == "$var":
+                path = "/".join(hier_list + [words[4]])
                 path_list.append(path)
                 path_dict[path] = SignalDef(
-                    name=words[4],
-                    sid=words[3],
-                    length=int(words[2])
+                    name=words[4], sid=words[3], length=int(words[2]), path=path
                 )
-            elif words[0] == '$upscope':
+            elif words[0] == "$upscope":
                 if hier_list:
                     hier_list.pop()
 
-    def _filter_path_dict(self, path_list: List[str], path_dict: Dict[str, SignalDef]) -> Dict[str, SignalDef]:
+    def _filter_path_dict(
+        self, path_list: List[str], path_dict: Dict[str, SignalDef]
+    ) -> Dict[str, SignalDef]:
         """Filter path dictionary to only include requested signals.
 
         Args:
@@ -100,7 +100,7 @@ class VCDParser:
         """
         filtered_dict = {}
         for path in path_list:
-            path = path.strip('/')
+            path = path.strip("/")
             signal_def = path_dict.get(path)
             if not signal_def:
                 raise ValueError(f"Can't find signal path: {path}")

@@ -2,6 +2,7 @@
 """Examples of using the vcd2image package."""
 
 from vcd2image.core.extractor import WaveExtractor
+from vcd2image.core.multi_renderer import MultiFigureRenderer
 
 
 def example1():
@@ -117,3 +118,49 @@ if __name__ == '__main__':
     #   ]
     #   ]
     # }
+
+
+def example4():
+    """Auto plotting: Generate single organized plot with all signals."""
+
+    renderer = MultiFigureRenderer()
+    renderer.render_lazy_plot('examples/timer.vcd', 'examples/timer_auto.png')
+
+
+if __name__ == '__main__':
+    print('')
+    print('')
+    print('Example 4')
+    print('----------------------------------------')
+    example4()
+
+    # Example 4
+    # ----------------------------------------
+    # Generates timer_auto.png with all signals organized in a single figure
+
+
+def example5():
+    """Auto plotting: Generate multiple categorized figures."""
+
+    renderer = MultiFigureRenderer()
+    renderer.render_categorized_figures(
+        vcd_file='examples/timer.vcd',
+        output_dir='examples/figures',
+        base_name='timer',
+        formats=['png', 'svg', 'html']
+    )
+
+
+if __name__ == '__main__':
+    print('')
+    print('')
+    print('Example 5')
+    print('----------------------------------------')
+    example5()
+
+    # Example 5
+    # ----------------------------------------
+    # Generates multiple figures:
+    # - timer_ports.png/svg/html: Input and output ports
+    # - timer_internal.png/svg/html: Internal signals
+    # - timer_all.png/svg/html: All signals

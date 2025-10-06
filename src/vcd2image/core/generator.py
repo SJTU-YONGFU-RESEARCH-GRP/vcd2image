@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 class WaveJSONGenerator:
     """Generates WaveJSON format from signal samples."""
 
-    def __init__(self, path_list: List[str], path_dict: Dict[str, SignalDef], wave_chunk: int) -> None:
+    def __init__(
+        self, path_list: List[str], path_dict: Dict[str, SignalDef], wave_chunk: int
+    ) -> None:
         """Initialize JSON generator.
 
         Args:
@@ -37,14 +39,12 @@ class WaveJSONGenerator:
         json_parts = []
         json_parts.append(self._create_header())
 
-        for i, sample_dict in enumerate(sample_groups):
-            if i > 0:
-                json_parts.append('  {},')
+        for sample_dict in sample_groups:
             json_parts.append(self._create_body(sample_dict))
 
         json_parts.append(self._create_footer())
 
-        return '\n'.join(json_parts)
+        return "\n".join(json_parts)
 
     def _create_header(self) -> str:
         """Create JSON header with clock signal.
@@ -70,8 +70,8 @@ class WaveJSONGenerator:
         origin = "0"  # Placeholder - would need to be calculated
 
         json_lines = []
-        json_lines.append('  {},')
-        json_lines.append(f'  ["{origin}"')
+        json_lines.append(",\n  {}")
+        json_lines.append(f',\n  ["{origin}"')
 
         for path in self.path_list[1:]:  # Skip clock signal
             signal_def = self.path_dict[path]
@@ -89,8 +89,8 @@ class WaveJSONGenerator:
                 wave, data = self._create_wave_data(samples, signal_def.length, signal_def.fmt)
                 json_lines.append(f',\n    {{ "name": {name}, "wave": {wave}, "data": {data} }}')
 
-        json_lines.append('\n  ]')
-        return ''.join(json_lines)
+        json_lines.append("\n  ]")
+        return "".join(json_lines)
 
     def _create_footer(self) -> str:
         """Create JSON footer.
@@ -98,7 +98,7 @@ class WaveJSONGenerator:
         Returns:
             JSON footer string.
         """
-        return '\n  ]\n}'
+        return "\n  ]\n}"
 
     def _create_wave(self, samples: List[str]) -> str:
         """Create wave string for single-bit signals.
@@ -113,10 +113,10 @@ class WaveJSONGenerator:
             return '""'
 
         prev = None
-        wave = ''
+        wave = ""
         for value in samples:
             if value == prev:
-                wave += '.'
+                wave += "."
             else:
                 wave += value
             prev = value
@@ -137,19 +137,19 @@ class WaveJSONGenerator:
             return '""', '""'
 
         prev = None
-        wave = ''
-        data = ''
+        wave = ""
+        data = ""
 
         for value in samples:
             if value == prev:
-                wave += '.'
+                wave += "."
             elif self._is_binary_string(value):
-                wave += '='
-                data += ' ' + self._format_value(value, length, fmt)
-            elif all(c == 'z' for c in value):
-                wave += 'z'
+                wave += "="
+                data += " " + self._format_value(value, length, fmt)
+            elif all(c == "z" for c in value):
+                wave += "z"
             else:
-                wave += 'x'
+                wave += "x"
             prev = value
 
         return f'"{wave}"', f'"{data[1:]}"'
@@ -163,7 +163,7 @@ class WaveJSONGenerator:
         Returns:
             True if string contains only 0s and 1s.
         """
-        return all(c in ('0', '1') for c in value)
+        return all(c in ("0", "1") for c in value)
 
     def _format_value(self, value: str, length: int, fmt: str) -> str:
         """Format multi-bit value according to specified format.
@@ -179,19 +179,19 @@ class WaveJSONGenerator:
         try:
             value_int = int(value, 2)
         except ValueError:
-            return 'x'
+            return "x"
 
-        if fmt == 'b':
-            fmt_str = f'0{length}b'
-        elif fmt == 'd':
-            if value_int >= 2**(length-1):
+        if fmt == "b":
+            fmt_str = f"0{length}b"
+        elif fmt == "d":
+            if value_int >= 2 ** (length - 1):
                 value_int -= 2**length
-            fmt_str = 'd'
-        elif fmt == 'u':
-            fmt_str = 'd'
-        elif fmt == 'X':
-            fmt_str = f'0{((length+3)//4)}X'
+            fmt_str = "d"
+        elif fmt == "u":
+            fmt_str = "d"
+        elif fmt == "X":
+            fmt_str = f"0{((length + 3) // 4)}X"
         else:  # 'x' or default
-            fmt_str = f'0{((length+3)//4)}x'
+            fmt_str = f"0{((length + 3) // 4)}x"
 
         return format(value_int, fmt_str)

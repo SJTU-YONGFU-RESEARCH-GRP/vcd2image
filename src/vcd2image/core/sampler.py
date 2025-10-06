@@ -22,7 +22,9 @@ class SignalSampler:
         self.end_time = end_time
         self.now = 0
 
-    def sample_signals(self, fin: TextIO, clock_sid: str, signal_sids: List[str]) -> List[Dict[str, List[str]]]:
+    def sample_signals(
+        self, fin: TextIO, clock_sid: str, signal_sids: List[str]
+    ) -> List[Dict[str, List[str]]]:
         """Sample signal values from VCD file.
 
         Args:
@@ -34,13 +36,14 @@ class SignalSampler:
             List of sample dictionaries for each time group.
         """
         origin = self.now
-        clock_prev = 'x'
+        clock_prev = "x"
         sample_groups: List[Dict[str, List[str]]] = []
 
         # Initialize value and sample dictionaries
-        value_dict = {sid: 'x' for sid in [clock_sid] + signal_sids}
+        value_dict = {sid: "x" for sid in [clock_sid] + signal_sids}
         sample_dict = {sid: [] for sid in [clock_sid] + signal_sids}
 
+        logger.debug(f"Sampling signals with clock_sid={clock_sid}, signal_sids={signal_sids}")
         data_count = 0
 
         while True:
@@ -58,34 +61,34 @@ class SignalSampler:
             char = words[0][0]
 
             # Skip comment lines
-            if char == '$':
+            if char == "$":
                 continue
 
             # Skip real number lines
-            if char == 'r':
+            if char == "r":
                 continue
 
             # Handle scalar values
-            if char in ('0', '1', 'x', 'z'):
+            if char in ("0", "1", "x", "z"):
                 sid = words[0][1:]
                 if sid in value_dict:
                     value_dict[sid] = char
                 continue
 
             # Handle vector values
-            if char == 'b':
+            if char == "b":
                 sid = words[1]
                 if sid in value_dict:
                     value_dict[sid] = words[0][1:]
                 continue
 
             # Handle timestamp changes
-            if char == '#':
+            if char == "#":
                 next_now = words[0][1:]
                 clock = value_dict[clock_sid]
 
                 # Detect negative clock edge
-                if clock_prev == '1' and clock == '0':
+                if clock_prev == "1" and clock == "0":
                     if data_count == 0:
                         origin = self.now
                     if self.start_time <= int(origin):

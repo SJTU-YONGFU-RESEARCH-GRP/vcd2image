@@ -165,18 +165,89 @@ if [ "$RUN_ALL" = true ] || [ "$RUN_EXAMPLES" = true ]; then
         # Change to examples directory for default file paths
         cd examples
 
-        # Extract signals from VCD to JSON
-        run_with_timing "python -m vcd2image.cli.main timer.vcd -o timer.json -s tb_timer/u_timer/clock tb_timer/u_timer/reset tb_timer/u_timer/pulse tb_timer/u_timer/count_eq11 tb_timer/u_timer/count" "VCD to JSON conversion"
+        # Define test output files with unique names
+        TEST_JSON="test_timer.json"
+        TEST_PNG="test_timer.png"
+        TEST_FULL_PNG="test_timer_full.png"
+        TEST_AUTO_PNG="test_timer_auto.png"
+        TEST_FIGURES_DIR="test_figures"
+
+        # Clean up any existing test files from previous runs
+        log_info "Cleaning up previous test outputs..."
+        rm -f "$TEST_JSON" "$TEST_PNG" "$TEST_FULL_PNG" "$TEST_AUTO_PNG"
+        rm -rf "$TEST_FIGURES_DIR"
+
+        # Extract signals from VCD to JSON (using test-specific output name)
+        run_with_timing "python -m vcd2image.cli.main timer.vcd -o $TEST_JSON -s tb_timer/u_timer/clock tb_timer/u_timer/reset tb_timer/u_timer/pulse tb_timer/u_timer/count_eq11 tb_timer/u_timer/count" "VCD to JSON conversion"
 
         # Convert JSON to PNG image
-        run_with_timing "python -m vcd2image.cli.main timer.json -i timer.png" "JSON to PNG conversion"
+        run_with_timing "python -m vcd2image.cli.main $TEST_JSON -i $TEST_PNG" "JSON to PNG conversion"
 
         # Run the full pipeline example (VCD -> JSON -> PNG in one command)
-        run_with_timing "python -m vcd2image.cli.main timer.vcd -s tb_timer/u_timer/clock tb_timer/u_timer/reset tb_timer/u_timer/pulse tb_timer/u_timer/count_eq11 tb_timer/u_timer/count --image timer_full.png" "Full pipeline conversion"
+        run_with_timing "python -m vcd2image.cli.main timer.vcd -s tb_timer/u_timer/clock tb_timer/u_timer/reset tb_timer/u_timer/pulse tb_timer/u_timer/count_eq11 tb_timer/u_timer/count --image $TEST_FULL_PNG" "Full pipeline conversion"
+
+        # Auto plotting: Single organized plot
+        run_with_timing "python -m vcd2image.cli.main timer.vcd --auto-plot --image $TEST_AUTO_PNG" "Auto plotting (single figure)"
+
+        # Auto plotting: Multiple categorized figures
+        mkdir -p "$TEST_FIGURES_DIR"
+        run_with_timing "python -m vcd2image.cli.main timer.vcd --auto-plot --plot-dir $TEST_FIGURES_DIR --plot-formats png svg" "Auto plotting (multiple figures)"
 
         # List available signals
         log_info "Listing available signals in timer.vcd..."
         python -m vcd2image.cli.main timer.vcd --list-signals
+
+        # Verify all outputs are in examples directory
+        log_info "Verifying all generated files are in examples/ directory..."
+        GENERATED_FILES="$TEST_JSON $TEST_PNG $TEST_FULL_PNG $TEST_AUTO_PNG"
+        MISSING_FILES=""
+
+        for file in $GENERATED_FILES; do
+            if [ -f "$file" ]; then
+                log_success "✓ Generated file found: $file"
+            else
+                log_error "✗ Generated file missing: $file"
+                MISSING_FILES="$MISSING_FILES $file"
+            fi
+        done
+
+        if [ -d "$TEST_FIGURES_DIR" ]; then
+            FIGURE_COUNT=$(find "$TEST_FIGURES_DIR" -type f | wc -l)
+            log_success "✓ Generated figures directory with $FIGURE_COUNT files: $TEST_FIGURES_DIR/"
+        else
+            log_error "✗ Generated figures directory missing: $TEST_FIGURES_DIR/"
+            MISSING_FILES="$MISSING_FILES $TEST_FIGURES_DIR/"
+        fi
+
+        # Check for file name conflicts with existing files
+        EXISTING_FILES="timer.json timer_lazy.json example.py timer.v timer.vcd"
+        CONFLICTS_FOUND=""
+
+        for gen_file in $GENERATED_FILES; do
+            for existing in $EXISTING_FILES; do
+                if [ "$gen_file" = "$existing" ]; then
+                    log_warning "⚠ File name conflict detected: $gen_file (using test-specific names to avoid conflicts)"
+                    CONFLICTS_FOUND="$CONFLICTS_FOUND $gen_file"
+                fi
+            done
+        done
+
+        if [ -n "$CONFLICTS_FOUND" ]; then
+            log_info "Note: Test files use unique names to avoid overwriting existing files"
+        fi
+
+        # Clean up test files
+        log_info "Cleaning up test output files..."
+        rm -f $GENERATED_FILES
+        rm -rf "$TEST_FIGURES_DIR"
+
+        # Report results
+        if [ -z "$MISSING_FILES" ]; then
+            log_success "All example tests passed with proper file isolation!"
+        else
+            log_error "Some files were not generated properly: $MISSING_FILES"
+            exit 1
+        fi
 
         # Go back to project root
         cd ..
