@@ -1,7 +1,7 @@
 """Tests for wave renderer module."""
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -165,11 +165,18 @@ class TestWaveRenderer:
         ) as mock_playwright:
             mock_browser = MagicMock()
             mock_page = MagicMock()
+            mock_svg_element = MagicMock()
 
             mock_playwright.return_value.__aenter__.return_value = mock_playwright.return_value
             mock_playwright.return_value.chromium.launch.return_value = mock_browser
             mock_browser.new_page.return_value = mock_page
-            mock_page.query_selector.return_value = MagicMock()
+            mock_page.query_selector.return_value = mock_svg_element
+            mock_svg_element.inner_html.return_value = "<svg>test</svg>"
+
+            # Make async methods return coroutines
+            mock_page.goto = AsyncMock()
+            mock_page.wait_for_selector = AsyncMock()
+            mock_page.screenshot = AsyncMock()
 
             await renderer._render_html_to_image_async(str(html_file), image_file)
 
@@ -201,6 +208,11 @@ class TestWaveRenderer:
             mock_page.query_selector.return_value = mock_svg_element
             mock_svg_element.inner_html.return_value = "<svg>test</svg>"
 
+            # Make async methods return coroutines
+            mock_page.goto = AsyncMock()
+            mock_page.wait_for_selector = AsyncMock()
+            mock_svg_element.inner_html = AsyncMock(return_value="<svg>test</svg>")
+
             await renderer._render_html_to_image_async(str(html_file), image_file)
 
             # Should extract SVG content and write to file
@@ -230,6 +242,10 @@ class TestWaveRenderer:
             mock_playwright.return_value.chromium.launch.return_value = mock_browser
             mock_browser.new_page.return_value = mock_page
             mock_page.query_selector.return_value = None  # No SVG element
+
+            # Make async methods return coroutines
+            mock_page.goto = AsyncMock()
+            mock_page.wait_for_selector = AsyncMock()
 
             with pytest.raises(RuntimeError, match="Could not find SVG element"):
                 await renderer._render_html_to_image_async(str(html_file), image_file)

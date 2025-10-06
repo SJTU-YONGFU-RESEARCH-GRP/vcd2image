@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
     "Topic :: Multimedia :: Graphics :: Graphics Conversion",
 ]
@@ -32,14 +33,17 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+    "pytest-xdist>=3.5.0",
+    "ruff>=0.6.0",
+    "mypy>=1.10.0",
 ]
 rendering = [
-    "playwright>=1.30.0",
-    "pillow>=9.0.0",
+    "playwright>=1.45.0",
+    "pillow>=10.0.0",
 ]
 
 [project.scripts]
@@ -60,7 +64,7 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
@@ -83,7 +87,7 @@ ignore = [
 "tests/**/*" = ["B011"]  # assert false
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 follow_imports = "silent"
 warn_return_any = true
 warn_unused_configs = true
@@ -110,9 +114,12 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q --cov=vcd2image --cov-report=term-missing"
+minversion = "8.0"
+addopts = "-x --tb=short --strict-markers"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+markers = [
+    "asyncio: marks tests as async (using pytest-asyncio)",
+]

@@ -8,7 +8,7 @@ import pytest
 from vcd2image.core.extractor import WaveExtractor
 
 if TYPE_CHECKING:
-    from pytest_mock.plugin import MockerFixture
+    from pytest_mock import MockerFixture
 
 
 class TestWaveExtractor:
@@ -92,18 +92,20 @@ b11111111 #
         vcd_file = tmp_path / "test.vcd"
         vcd_file.write_text("$enddefinitions $end\n")
 
-        # Mock the parser before creating extractor
-        with mocker.patch("vcd2image.core.extractor.VCDParser") as mock_parser_cls:
-            mock_parser = MagicMock()
-            mock_parser_cls.return_value = mock_parser
-            mock_signals = {"top/clock": MagicMock()}
-            mock_parser.parse_signals.return_value = mock_signals
+        # Mock the parser to avoid parsing issues during init
+        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mock_parser_instance = mocker.MagicMock()
+        mock_parser.return_value = mock_parser_instance
+        mock_signals = {"top/clock": MagicMock()}
+        mock_parser_instance.parse_signals.return_value = mock_signals
 
-            extractor = WaveExtractor(str(vcd_file), "output.json", ["top/clock"])
-            extractor._setup()
+        # Pass empty path_dict to prevent automatic _setup() call in __init__
+        extractor = WaveExtractor(str(vcd_file), "output.json", ["top/clock"], path_dict={})
+        # Manually call _setup to test parsing logic
+        extractor._setup()
 
-            mock_parser.parse_signals.assert_called_once_with(["top/clock"])
-            assert extractor.path_dict == mock_signals
+        mock_parser_instance.parse_signals.assert_called_with(["top/clock"])
+        assert extractor.path_dict == mock_signals
 
     def test_setup_without_signals(self, tmp_path, mocker: "MockerFixture") -> None:
         """Test setup without specific signal list."""

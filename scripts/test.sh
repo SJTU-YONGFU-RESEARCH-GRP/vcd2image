@@ -44,6 +44,7 @@ fi
 
 # Global variable to track overall test success
 OVERALL_SUCCESS=true
+FAST_MODE=false
 
 # Function to run a command with timing
 run_with_timing() {
@@ -79,6 +80,12 @@ while [[ $# -gt 0 ]]; do
             RUN_UNIT=true
             shift
             ;;
+        --fast)
+            RUN_ALL=false
+            RUN_UNIT=true
+            FAST_MODE=true
+            shift
+            ;;
         --lint)
             RUN_ALL=false
             RUN_LINT=true
@@ -103,7 +110,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --unit     Run only unit tests"
+            echo "  --unit     Run only unit tests (with coverage if available)"
+            echo "  --fast     Run unit tests quickly (no coverage, stop on first failure)"
             echo "  --lint     Run only linting checks"
             echo "  --type     Run only type checking"
             echo "  --format   Run only code formatting"
@@ -157,10 +165,41 @@ fi
 # Run unit tests
 if [ "$RUN_ALL" = true ] || [ "$RUN_UNIT" = true ]; then
     if command -v pytest &> /dev/null; then
-        run_with_timing "pytest --cov=vcd2image --cov-report=term-missing --cov-report=html" "Unit tests with coverage"
+        # Check if required pytest plugins are available
+        missing_plugins=""
+        if ! python3 -c "import pytest_mock" 2>/dev/null; then
+            missing_plugins="$missing_plugins pytest-mock"
+        fi
+        if ! python3 -c "import pytest_asyncio" 2>/dev/null; then
+            missing_plugins="$missing_plugins pytest-asyncio"
+        fi
+
+        if [ -n "$missing_plugins" ]; then
+            log_warning "Missing required pytest plugins:$missing_plugins"
+            log_info "Install with: pip install$missing_plugins"
+            log_error "Cannot run tests without required plugins"
+            OVERALL_SUCCESS=false
+            return 0
+        else
+            if [ "$FAST_MODE" = true ]; then
+                # Check if pytest-xdist is available for parallel execution
+                if python3 -c "import xdist" 2>/dev/null; then
+                    run_with_timing "pytest -x --tb=line -n auto" "Fast parallel unit tests"
+                else
+                    run_with_timing "pytest -x --tb=line" "Fast unit tests (no coverage, stop on failure)"
+                fi
+            else
+                # Check if pytest-cov is available
+                if python3 -c "import pytest_cov" 2>/dev/null; then
+                    run_with_timing "pytest --cov=vcd2image --cov-report=term-missing --cov-report=html" "Unit tests with coverage"
+                else
+                    run_with_timing "pytest" "Unit tests (coverage not available)"
+                fi
+            fi
+        fi
     else
         log_warning "pytest not found, skipping unit tests"
-        log_info "Install with: pip install pytest pytest-cov"
+        log_info "Install with: pip install pytest pytest-cov pytest-asyncio pytest-mock"
     fi
 fi
 

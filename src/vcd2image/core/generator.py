@@ -183,6 +183,9 @@ class WaveJSONGenerator:
         if fmt == "b":
             fmt_str = f"0{length}b"
         elif fmt == "d":
+            # Signed decimal: use two's complement for negative numbers
+            if length > 1 and (value_int & (1 << (length - 1))):  # MSB is set
+                value_int = value_int - (1 << length)  # Convert to signed
             fmt_str = "d"
         elif fmt == "u":
             fmt_str = "d"

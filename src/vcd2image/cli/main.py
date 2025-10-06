@@ -160,10 +160,10 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for error).
     """
-    parser = create_parser()
-    args = parser.parse_args()
-
     try:
+        parser = create_parser()
+        args = parser.parse_args()
+
         setup_logging(args.verbose)
         validate_args(args)
 

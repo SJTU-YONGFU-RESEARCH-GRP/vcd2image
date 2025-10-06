@@ -121,9 +121,9 @@ class TestWaveJSONGenerator:
         formatted = generator._format_value("1010", 4, "b")
         assert formatted == "1010"
 
-        # Test decimal format
+        # Test signed decimal format (two's complement)
         formatted = generator._format_value("1010", 4, "d")
-        assert formatted == "10"
+        assert formatted == "-6"
 
         # Test unsigned decimal format
         formatted = generator._format_value("1010", 4, "u")
