@@ -1,0 +1,12 @@
+# Core dependencies
+typing-extensions>=4.0.0; python_version < "3.11"
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+ruff>=0.1.0
+mypy>=1.0.0
+
+# Rendering dependencies (optional)
+playwright>=1.30.0
+pillow>=9.0.0

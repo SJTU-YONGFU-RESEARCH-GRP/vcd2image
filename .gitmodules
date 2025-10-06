@@ -1,0 +1,3 @@
+[submodule "tools/wavedrom"]
+	path = tools/wavedrom
+	url = git@github.com:wavedrom/wavedrom.git
