@@ -19,8 +19,10 @@ VCD2Image is a modern Python tool that converts VCD (Value Change Dump) files fr
 
 - **🚀 Fast VCD Processing**: Efficiently parse large VCD files from Verilog/VHDL simulations
 - **🎨 Professional Diagrams**: Generate beautiful timing diagrams using WaveDrom
+- **🤖 Auto Plotting**: Intelligent signal categorization and automatic diagram generation
 - **🔧 Flexible Output**: Support for multiple image formats (SVG, PNG, PDF)
 - **⚙️ Customizable**: Configurable signal formatting, sampling rates, and diagram styles
+- **📊 Multi-Figure Generation**: Create categorized plots (ports, internal signals, etc.)
 - **🖥️ CLI & API**: Both command-line interface and Python API for integration
 - **🎯 Type-Safe**: Full type annotations and modern Python practices
 
@@ -61,12 +63,18 @@ vcd2image timer.json -i timer.png
 
 # Full pipeline: VCD → JSON → Image
 vcd2image timer.vcd -s clock reset pulse counter --image timer.png
+
+# Auto plotting: Generate single organized plot with all signals
+vcd2image timer.vcd --auto-plot --image timer_auto.png
+
+# Auto plotting: Generate multiple categorized figures
+vcd2image timer.vcd --auto-plot --plot-dir ./figures --plot-formats png svg html
 ```
 
 ### Python API
 
 ```python
-from vcd2image import WaveExtractor, WaveRenderer
+from vcd2image import WaveExtractor, WaveRenderer, MultiFigureRenderer
 
 # Extract signals from VCD
 extractor = WaveExtractor('timer.vcd', 'timer.json', [
@@ -80,6 +88,17 @@ extractor.execute()
 # Render to image
 renderer = WaveRenderer()
 renderer.render_to_image('timer.json', 'timer.png')
+
+# Auto plotting: Generate single organized plot
+multi_renderer = MultiFigureRenderer()
+multi_renderer.render_lazy_plot('timer.vcd', 'timer_auto.png')
+
+# Auto plotting: Generate multiple categorized figures
+multi_renderer.render_categorized_figures(
+    vcd_file='timer.vcd',
+    output_dir='./figures',
+    formats=['png', 'svg', 'html']
+)
 ```
 
 ## 📖 Usage Examples
@@ -97,6 +116,14 @@ vcd2image timer.vcd -o output.json \
     --wave-chunk 25 \
     --start-time 100 \
     --end-time 1000
+
+# Auto plotting: Generate organized timing diagrams automatically
+vcd2image timer.vcd --auto-plot --image auto_plot.png
+
+# Advanced auto plotting: Multiple figures in different formats
+vcd2image timer.vcd --auto-plot \
+    --plot-dir ./waveforms \
+    --plot-formats png svg html
 ```
 
 ### Advanced Configuration
@@ -117,6 +144,31 @@ extractor.wave_format('counter', 'd')   # Decimal
 
 extractor.execute()
 ```
+
+## 🤖 Auto Plotting
+
+VCD2Image features intelligent auto-plotting capabilities that automatically categorize and organize signals into meaningful timing diagrams:
+
+### Single Plot Mode (`--auto-plot --image`)
+Generates a single, well-organized timing diagram with all signals grouped logically:
+- **Clock signals** at the top
+- **Input ports** (reset, enable, data inputs)
+- **Output ports** (data outputs, status signals)
+- **Internal signals** (state machines, counters, etc.)
+
+### Multi-Figure Mode (`--auto-plot --plot-dir`)
+Creates separate categorized diagrams:
+- `*_ports.png/svg/html`: Input and output ports
+- `*_internal.png/svg/html`: Internal module signals
+- `*_all.png/svg/html`: Complete signal overview
+
+### Signal Categorization
+The intelligent categorizer uses pattern matching to identify:
+- **Clock signals**: `clock`, `clk`, `ck`
+- **Input ports**: `i_`, `in`, `input`
+- **Output ports**: `o_`, `out`, `output`
+- **Reset signals**: `reset`, `rst`, `clear`
+- **Internal signals**: `u_`, `dut_`, module hierarchies
 
 ## 🎨 Output Formats
 
@@ -146,12 +198,16 @@ Create a `config.yaml` or use environment variables for persistent settings.
 vcd2image/
 ├── cli/           # Command-line interface
 ├── core/          # Core business logic
+│   ├── categorizer.py  # Intelligent signal categorization
 │   ├── extractor.py    # VCD parsing and WaveJSON generation
-│   ├── renderer.py     # WaveDrom-based image rendering
+│   ├── generator.py    # WaveJSON generation logic
+│   ├── models.py       # Data models and type definitions
+│   ├── multi_renderer.py # Multi-figure rendering and auto-plotting
 │   ├── parser.py       # VCD file parsing
-│   ├── sampler.py      # Signal sampling
-│   └── models.py       # Data models
+│   ├── renderer.py     # WaveDrom-based image rendering
+│   └── sampler.py      # Signal sampling
 └── utils/         # Utilities and configuration
+    └── config.py       # Configuration management
 ```
 
 ## 📚 API Reference
@@ -183,6 +239,33 @@ Renders WaveJSON to images using WaveDrom.
 class WaveRenderer:
     def __init__(self, skin: str = "default")
     def render_to_image(self, json_file: str, image_file: str) -> int
+```
+
+### MultiFigureRenderer
+
+Automatically generates categorized timing diagrams from VCD files with intelligent signal grouping.
+
+```python
+class MultiFigureRenderer:
+    def __init__(self, skin: str = "default") -> None
+    def render_lazy_plot(self, vcd_file: str, output_file: str) -> int
+    def render_categorized_figures(
+        self,
+        vcd_file: str,
+        output_dir: str,
+        base_name: str = "waveform",
+        formats: List[str] = None
+    ) -> int
+```
+
+### SignalCategorizer
+
+Intelligent signal categorization engine that automatically groups signals based on naming patterns and hierarchy.
+
+```python
+class SignalCategorizer:
+    def categorize_signals(self, signals: Dict[str, SignalDef]) -> Dict[SignalCategory, List[str]]
+    def get_signal_type(self, signal_path: str) -> SignalType
 ```
 
 ## 🧪 Development

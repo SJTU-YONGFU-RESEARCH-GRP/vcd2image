@@ -1,7 +1,6 @@
 """WaveJSON generation from sampled signal data."""
 
 import logging
-from typing import Dict, List
 
 from .models import SignalDef
 
@@ -12,7 +11,7 @@ class WaveJSONGenerator:
     """Generates WaveJSON format from signal samples."""
 
     def __init__(
-        self, path_list: List[str], path_dict: Dict[str, SignalDef], wave_chunk: int
+        self, path_list: list[str], path_dict: dict[str, SignalDef], wave_chunk: int
     ) -> None:
         """Initialize JSON generator.
 
@@ -27,7 +26,7 @@ class WaveJSONGenerator:
         self.clock_name = path_dict[path_list[0]].name
         self.name_width = max(len(path_dict[path].name) for path in path_list)
 
-    def generate_json(self, sample_groups: List[Dict[str, List[str]]]) -> str:
+    def generate_json(self, sample_groups: list[dict[str, list[str]]]) -> str:
         """Generate complete WaveJSON string.
 
         Args:
@@ -56,7 +55,7 @@ class WaveJSONGenerator:
         wave = f'"{"p" + "." * (self.wave_chunk - 1)}"'
         return f'{{ "head": {{"tock":1}},\n  "signal": [\n  {{   "name": {name}, "wave": {wave} }}'
 
-    def _create_body(self, sample_dict: Dict[str, List[str]]) -> str:
+    def _create_body(self, sample_dict: dict[str, list[str]]) -> str:
         """Create JSON body for a sample group.
 
         Args:
@@ -100,7 +99,7 @@ class WaveJSONGenerator:
         """
         return "\n  ]\n}"
 
-    def _create_wave(self, samples: List[str]) -> str:
+    def _create_wave(self, samples: list[str]) -> str:
         """Create wave string for single-bit signals.
 
         Args:
@@ -122,7 +121,7 @@ class WaveJSONGenerator:
             prev = value
         return f'"{wave}"'
 
-    def _create_wave_data(self, samples: List[str], length: int, fmt: str) -> tuple[str, str]:
+    def _create_wave_data(self, samples: list[str], length: int, fmt: str) -> tuple[str, str]:
         """Create wave and data strings for multi-bit signals.
 
         Args:
@@ -161,9 +160,9 @@ class WaveJSONGenerator:
             value: Value string to check.
 
         Returns:
-            True if string contains only 0s and 1s.
+            True if string contains only 0s and 1s and is not empty.
         """
-        return all(c in ("0", "1") for c in value)
+        return bool(value) and all(c in ("0", "1") for c in value)
 
     def _format_value(self, value: str, length: int, fmt: str) -> str:
         """Format multi-bit value according to specified format.
@@ -184,8 +183,6 @@ class WaveJSONGenerator:
         if fmt == "b":
             fmt_str = f"0{length}b"
         elif fmt == "d":
-            if value_int >= 2 ** (length - 1):
-                value_int -= 2**length
             fmt_str = "d"
         elif fmt == "u":
             fmt_str = "d"

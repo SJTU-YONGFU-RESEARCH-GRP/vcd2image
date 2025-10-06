@@ -1,17 +1,13 @@
 """Tests for wave extractor module."""
 
 from typing import TYPE_CHECKING
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from vcd2image.core.extractor import WaveExtractor
 
 if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
     from pytest_mock.plugin import MockerFixture
 
 
@@ -66,7 +62,7 @@ b11111111 #
 
     def test_wave_chunk_property(self, mocker) -> None:
         """Test wave_chunk property getter/setter."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
 
         extractor.wave_chunk = 10
@@ -77,7 +73,7 @@ b11111111 #
 
     def test_start_time_property(self, mocker) -> None:
         """Test start_time property getter/setter."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
 
         extractor.start_time = 100
@@ -85,7 +81,7 @@ b11111111 #
 
     def test_end_time_property(self, mocker) -> None:
         """Test end_time property getter/setter."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
 
         extractor.end_time = 1000
@@ -96,17 +92,18 @@ b11111111 #
         vcd_file = tmp_path / "test.vcd"
         vcd_file.write_text("$enddefinitions $end\n")
 
-        extractor = WaveExtractor(str(vcd_file), "output.json", ["clock"])
+        # Mock the parser before creating extractor
+        with mocker.patch("vcd2image.core.extractor.VCDParser") as mock_parser_cls:
+            mock_parser = MagicMock()
+            mock_parser_cls.return_value = mock_parser
+            mock_signals = {"top/clock": MagicMock()}
+            mock_parser.parse_signals.return_value = mock_signals
 
-        # Mock the parser
-        mock_parser = mocker.patch.object(extractor, "parser")
-        mock_signals = {"clock": MagicMock()}
-        mock_parser.parse_signals.return_value = mock_signals
+            extractor = WaveExtractor(str(vcd_file), "output.json", ["top/clock"])
+            extractor._setup()
 
-        extractor._setup()
-
-        mock_parser.parse_signals.assert_called_once_with(["clock"])
-        assert extractor.path_dict == mock_signals
+            mock_parser.parse_signals.assert_called_once_with(["top/clock"])
+            assert extractor.path_dict == mock_signals
 
     def test_setup_without_signals(self, tmp_path, mocker: "MockerFixture") -> None:
         """Test setup without specific signal list."""
@@ -123,13 +120,13 @@ b11111111 #
         extractor._setup()
 
         # Should call parse_signals with no args, then set path_list
-        assert mock_parser.parse_signals.call_count == 2
-        mock_parser.parse_signals.assert_any_call()
+        assert mock_parser.parse_signals.call_count == 1
+        mock_parser.parse_signals.assert_called_once_with()
         assert extractor.path_list == ["clock", "data"]
 
     def test_print_props(self, capsys, mocker) -> None:
         """Test printing properties."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("test.vcd", "output.json", ["clock", "data"])
         extractor.wave_chunk = 10
         extractor.start_time = 5
@@ -150,7 +147,7 @@ b11111111 #
 
     def test_wave_format_valid(self, mocker) -> None:
         """Test setting valid wave format."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
         extractor.path_dict = {"signal1": MagicMock()}
 
@@ -160,7 +157,7 @@ b11111111 #
 
     def test_wave_format_invalid_character(self, mocker) -> None:
         """Test setting invalid wave format raises ValueError."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
 
         with pytest.raises(ValueError, match="'z': Invalid format character"):
@@ -168,7 +165,7 @@ b11111111 #
 
     def test_wave_format_missing_signal(self, mocker) -> None:
         """Test formatting nonexistent signal raises ValueError."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("dummy.vcd", "dummy.json", [])
         extractor.path_dict = {}
 
@@ -179,8 +176,9 @@ b11111111 #
     @patch("sys.stdout")
     def test_execute_success(self, mock_stdout, mock_open, mocker: "MockerFixture") -> None:
         """Test successful execution."""
-        extractor = WaveExtractor("test.vcd", "", ["clock"])  # stdout output
-        extractor.path_dict = {"clock": MagicMock(sid="$")}
+        with mocker.patch("vcd2image.core.extractor.VCDParser"):
+            extractor = WaveExtractor("test.vcd", "", ["clock"])  # stdout output
+            extractor.path_dict = {"clock": MagicMock(sid="$")}
 
         # Mock components
         mock_sampler = mocker.patch("vcd2image.core.extractor.SignalSampler")
@@ -205,7 +203,7 @@ b11111111 #
 
     def test_execute_no_signals(self, mocker) -> None:
         """Test execution with no signals raises error."""
-        mock_parser = mocker.patch("vcd2image.core.extractor.VCDParser")
+        mocker.patch("vcd2image.core.extractor.VCDParser")
         extractor = WaveExtractor("test.vcd", "output.json", [])
         extractor.path_dict = None
 
@@ -214,8 +212,9 @@ b11111111 #
 
     def test_execute_no_samples(self, mocker: "MockerFixture") -> None:
         """Test execution with no samples returns error."""
-        extractor = WaveExtractor("test.vcd", "output.json", ["clock"])
-        extractor.path_dict = {"clock": MagicMock(sid="$")}
+        with mocker.patch("vcd2image.core.extractor.VCDParser"):
+            extractor = WaveExtractor("test.vcd", "output.json", ["clock"])
+            extractor.path_dict = {"clock": MagicMock(sid="$")}
 
         # Mock components to return empty samples
         mock_sampler = mocker.patch("vcd2image.core.extractor.SignalSampler")

@@ -4,12 +4,10 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 from ..core.extractor import WaveExtractor
 from ..core.multi_renderer import MultiFigureRenderer
 from ..core.renderer import WaveRenderer
-from ..utils.config import Config
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -168,8 +166,6 @@ def main() -> int:
     try:
         setup_logging(args.verbose)
         validate_args(args)
-
-        config = Config.from_args(args)
 
         if Path(args.input_file).suffix.lower() == ".vcd":
             if args.auto_plot:

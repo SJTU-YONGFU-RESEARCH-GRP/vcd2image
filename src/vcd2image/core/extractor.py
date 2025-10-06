@@ -2,8 +2,6 @@
 
 import logging
 import sys
-from pathlib import Path
-from typing import Dict, List, Optional
 
 from .generator import WaveJSONGenerator
 from .models import SignalDef
@@ -20,8 +18,8 @@ class WaveExtractor:
         self,
         vcd_file: str,
         json_file: str,
-        path_list: List[str],
-        path_dict: Optional[Dict[str, SignalDef]] = None,
+        path_list: list[str],
+        path_dict: dict[str, SignalDef] | None = None,
     ) -> None:
         """Initialize wave extractor.
 
@@ -130,7 +128,7 @@ class WaveExtractor:
         """
         if fmt not in ("b", "d", "u", "x", "X"):
             raise ValueError(f"'{fmt}': Invalid format character.")
-        if signal_path not in self.path_dict:
+        if not self.path_dict or signal_path not in self.path_dict:
             raise ValueError(f"Signal path not found: {signal_path}")
         self.path_dict[signal_path].fmt = fmt
         return 0
@@ -148,7 +146,7 @@ class WaveExtractor:
 
         # Open VCD file and skip to dump section
         logger.debug(f"Opening VCD file: {self.vcd_file}")
-        fin = open(self.vcd_file, "rt", encoding="utf-8")
+        fin = open(self.vcd_file, encoding="utf-8")
 
         # Skip definitions section
         while True:
@@ -182,7 +180,7 @@ class WaveExtractor:
             fout = sys.stdout
         else:
             logger.info(f"Creating WaveJSON file: {self.json_file}")
-            fout = open(self.json_file, "wt", encoding="utf-8")
+            fout = open(self.json_file, "w", encoding="utf-8")
 
         fout.write(json_content)
 

@@ -1,7 +1,7 @@
 """Signal sampling from VCD files."""
 
 import logging
-from typing import Dict, List, TextIO
+from typing import TextIO
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,8 @@ class SignalSampler:
         self.now = 0
 
     def sample_signals(
-        self, fin: TextIO, clock_sid: str, signal_sids: List[str]
-    ) -> List[Dict[str, List[str]]]:
+        self, fin: TextIO, clock_sid: str, signal_sids: list[str]
+    ) -> list[dict[str, list[str]]]:
         """Sample signal values from VCD file.
 
         Args:
@@ -36,12 +36,13 @@ class SignalSampler:
             List of sample dictionaries for each time group.
         """
         origin = self.now
-        clock_prev = "x"
-        sample_groups: List[Dict[str, List[str]]] = []
+        sample_groups: list[dict[str, list[str]]] = []
 
         # Initialize value and sample dictionaries
-        value_dict = {sid: "x" for sid in [clock_sid] + signal_sids}
-        sample_dict = {sid: [] for sid in [clock_sid] + signal_sids}
+        value_dict = dict.fromkeys([clock_sid] + signal_sids, "x")
+        sample_dict: dict[str, list[str]] = dict.fromkeys([clock_sid] + signal_sids, [])
+
+        clock_prev = value_dict[clock_sid]  # initial clock value
 
         logger.debug(f"Sampling signals with clock_sid={clock_sid}, signal_sids={signal_sids}")
         data_count = 0
@@ -85,13 +86,25 @@ class SignalSampler:
             # Handle timestamp changes
             if char == "#":
                 next_now = words[0][1:]
-                clock = value_dict[clock_sid]
+                self.now = int(next_now)
+                old_clock = clock_prev
+
+                # Peek at next line to get new clock value
+                pos = fin.tell()
+                next_line = fin.readline()
+                fin.seek(pos)
+
+                new_clock = old_clock
+                if next_line:
+                    next_words = next_line.split()
+                    if next_words and len(next_words[0]) > 1 and next_words[0][1:] == clock_sid:
+                        new_clock = next_words[0][0]
 
                 # Detect negative clock edge
-                if clock_prev == "1" and clock == "0":
+                if old_clock == "1" and new_clock == "0":
                     if data_count == 0:
                         origin = self.now
-                    if self.start_time <= int(origin):
+                    if self.start_time <= origin:
                         # Sample all signals
                         for sid in sample_dict:
                             sample_dict[sid].append(value_dict[sid])
@@ -99,16 +112,19 @@ class SignalSampler:
 
                         # Check if we have enough samples for this group
                         if data_count == self.wave_chunk:
-                            sample_groups.append(dict(sample_dict))
+                            sample_groups.append({sid: sample_dict[sid][:] for sid in sample_dict})
                             # Reset for next group
                             for sid in sample_dict:
                                 sample_dict[sid].clear()
                             data_count = 0
 
-                self.now = next_now
-                clock_prev = clock
+                clock_prev = new_clock
                 continue
 
             raise ValueError(f"Unexpected character in VCD file: '{char}'")
+
+        # Save any remaining incomplete group
+        if any(sample_dict[sid] for sid in sample_dict):
+            sample_groups.append({sid: sample_dict[sid][:] for sid in sample_dict})
 
         return sample_groups

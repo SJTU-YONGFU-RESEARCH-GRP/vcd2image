@@ -2,7 +2,8 @@
 # VCD2Image Testing Script
 # This script runs all tests and code quality checks
 
-set -e  # Exit on any error
+# Note: Removed 'set -e' to allow all tests to run even if some fail
+# This way we can see all issues and fix them at once
 
 # Colors for output
 RED='\033[0;31m'
@@ -41,6 +42,9 @@ else
     log_warning "No virtual environment detected. Consider running: source venv/bin/activate"
 fi
 
+# Global variable to track overall test success
+OVERALL_SUCCESS=true
+
 # Function to run a command with timing
 run_with_timing() {
     local cmd="$1"
@@ -55,7 +59,8 @@ run_with_timing() {
         return 0
     else
         log_error "$desc failed"
-        return 1
+        OVERALL_SUCCESS=false
+        return 0  # Don't exit, continue with other tests
     fi
 }
 
@@ -265,8 +270,12 @@ fi
 
 echo
 echo "========================================"
-log_success "All requested tests completed!"
-echo "========================================"
-
-# Exit with success
-exit 0
+if [ "$OVERALL_SUCCESS" = true ]; then
+    log_success "All requested tests completed successfully!"
+    echo "========================================"
+    exit 0
+else
+    log_error "Some tests failed. Please review the output above and fix the issues."
+    echo "========================================"
+    exit 1
+fi

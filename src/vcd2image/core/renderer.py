@@ -6,7 +6,11 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
+
+try:
+    from playwright.async_api import async_playwright
+except ImportError:
+    async_playwright = None
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +45,7 @@ class WaveRenderer:
         logger.info(f"Rendering {json_file} to {image_file}")
 
         # Read WaveJSON
-        with open(json_path, "r", encoding="utf-8") as f:
+        with open(json_path, encoding="utf-8") as f:
             wavejson = json.load(f)
 
         # Generate HTML with WaveDrom
@@ -68,9 +72,7 @@ class WaveRenderer:
             html_file: Path to HTML file.
             image_path: Path to output image.
         """
-        try:
-            from playwright.async_api import async_playwright
-        except ImportError:
+        if async_playwright is None:
             raise ImportError(
                 "Playwright is required for image rendering. "
                 "Install with: pip install vcd2image[rendering]"
@@ -123,7 +125,7 @@ class WaveRenderer:
         logger.info(f"Generating HTML from {json_file} to {html_file}")
 
         # Read WaveJSON
-        with open(json_path, "r", encoding="utf-8") as f:
+        with open(json_path, encoding="utf-8") as f:
             wavejson = json.load(f)
 
         # Generate HTML with WaveDrom

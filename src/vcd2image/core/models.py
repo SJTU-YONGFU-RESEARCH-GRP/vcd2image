@@ -1,7 +1,6 @@
 """Data models for VCD signal processing."""
 
 from enum import Enum
-from typing import Dict, List
 
 
 class SignalType(Enum):
@@ -42,12 +41,12 @@ class SignalCategory:
 
     def __init__(self) -> None:
         """Initialize signal category container."""
-        self.input_ports: List[str] = []
-        self.output_ports: List[str] = []
-        self.internal_signals: List[str] = []
-        self.clock_signals: List[str] = []
+        self.input_ports: list[str] = []
+        self.output_ports: list[str] = []
+        self.internal_signals: list[str] = []
+        self.clock_signals: list[str] = []
 
-    def get_ports(self) -> List[str]:
+    def get_ports(self) -> list[str]:
         """Get all input and output ports.
 
         Returns:
@@ -55,7 +54,7 @@ class SignalCategory:
         """
         return self.input_ports + self.output_ports
 
-    def get_all_signals(self) -> List[str]:
+    def get_all_signals(self) -> list[str]:
         """Get all categorized signals.
 
         Returns:

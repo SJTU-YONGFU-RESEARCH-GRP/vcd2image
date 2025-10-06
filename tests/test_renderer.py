@@ -1,18 +1,14 @@
 """Tests for wave renderer module."""
 
 from typing import TYPE_CHECKING
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from vcd2image.core.renderer import WaveRenderer
 
 if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-    from pytest_mock.plugin import MockerFixture
+    pass
 
 
 class TestWaveRenderer:
@@ -164,14 +160,14 @@ class TestWaveRenderer:
         renderer = WaveRenderer()
 
         # Mock playwright
-        with patch("vcd2image.core.renderer.async_playwright") as mock_playwright:
+        with patch(
+            "vcd2image.core.renderer.async_playwright", new_callable=MagicMock
+        ) as mock_playwright:
             mock_browser = MagicMock()
             mock_page = MagicMock()
-            mock_context = MagicMock()
 
-            mock_playwright.return_value.__aenter__.return_value.chromium.launch.return_value = (
-                mock_browser
-            )
+            mock_playwright.return_value.__aenter__.return_value = mock_playwright.return_value
+            mock_playwright.return_value.chromium.launch.return_value = mock_browser
             mock_browser.new_page.return_value = mock_page
             mock_page.query_selector.return_value = MagicMock()
 
@@ -192,14 +188,15 @@ class TestWaveRenderer:
         renderer = WaveRenderer()
 
         # Mock playwright
-        with patch("vcd2image.core.renderer.async_playwright") as mock_playwright:
+        with patch(
+            "vcd2image.core.renderer.async_playwright", new_callable=MagicMock
+        ) as mock_playwright:
             mock_browser = MagicMock()
             mock_page = MagicMock()
             mock_svg_element = MagicMock()
 
-            mock_playwright.return_value.__aenter__.return_value.chromium.launch.return_value = (
-                mock_browser
-            )
+            mock_playwright.return_value.__aenter__.return_value = mock_playwright.return_value
+            mock_playwright.return_value.chromium.launch.return_value = mock_browser
             mock_browser.new_page.return_value = mock_page
             mock_page.query_selector.return_value = mock_svg_element
             mock_svg_element.inner_html.return_value = "<svg>test</svg>"
@@ -223,13 +220,14 @@ class TestWaveRenderer:
         renderer = WaveRenderer()
 
         # Mock playwright
-        with patch("vcd2image.core.renderer.async_playwright") as mock_playwright:
+        with patch(
+            "vcd2image.core.renderer.async_playwright", new_callable=MagicMock
+        ) as mock_playwright:
             mock_browser = MagicMock()
             mock_page = MagicMock()
 
-            mock_playwright.return_value.__aenter__.return_value.chromium.launch.return_value = (
-                mock_browser
-            )
+            mock_playwright.return_value.__aenter__.return_value = mock_playwright.return_value
+            mock_playwright.return_value.chromium.launch.return_value = mock_browser
             mock_browser.new_page.return_value = mock_page
             mock_page.query_selector.return_value = None  # No SVG element
 

@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import Dict, List, Optional
 
 from .models import SignalCategory, SignalDef, SignalType
 
@@ -50,7 +49,7 @@ class SignalCategorizer:
             "tb_",  # Testbench
         ]
 
-    def categorize_signals(self, path_dict: Dict[str, SignalDef]) -> SignalCategory:
+    def categorize_signals(self, path_dict: dict[str, SignalDef]) -> SignalCategory:
         """Categorize signals based on naming patterns and hierarchy.
 
         Args:
@@ -139,7 +138,7 @@ class SignalCategorizer:
         # Single-bit signals are often inputs, multi-bit are often outputs
         return SignalType.INPUT_PORT if signal_def.length == 1 else SignalType.OUTPUT_PORT
 
-    def _matches_any_pattern(self, text: str, patterns: List[re.Pattern]) -> bool:
+    def _matches_any_pattern(self, text: str, patterns: list[re.Pattern]) -> bool:
         """Check if text matches any of the given regex patterns.
 
         Args:
@@ -151,7 +150,7 @@ class SignalCategorizer:
         """
         return any(pattern.search(text) for pattern in patterns)
 
-    def suggest_clock_signal(self, category: SignalCategory) -> Optional[str]:
+    def suggest_clock_signal(self, category: SignalCategory) -> str | None:
         """Suggest the most likely clock signal from categorized signals.
 
         Prefers internal clock signals over testbench clock signals.

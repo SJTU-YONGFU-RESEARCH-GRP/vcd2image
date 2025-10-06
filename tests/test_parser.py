@@ -1,18 +1,12 @@
 """Tests for VCD parser module."""
 
 from typing import TYPE_CHECKING
-from unittest.mock import mock_open
 
 import pytest
 
-from vcd2image.core.models import SignalDef
 from vcd2image.core.parser import VCDParser
 
 if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
     from pytest_mock.plugin import MockerFixture
 
 
@@ -73,17 +67,17 @@ b11111111 #
         signals = parser.parse_signals()
 
         assert len(signals) == 3
-        assert "data" in signals
-        assert "clock" in signals
-        assert "reset" in signals
+        assert "top/data" in signals
+        assert "top/clock" in signals
+        assert "top/reset" in signals
 
-        assert signals["data"].name == "data"
-        assert signals["data"].sid == "#"
-        assert signals["data"].length == 8
+        assert signals["top/data"].name == "data"
+        assert signals["top/data"].sid == "#"
+        assert signals["top/data"].length == 8
 
-        assert signals["clock"].name == "clock"
-        assert signals["clock"].sid == "$"
-        assert signals["clock"].length == 1
+        assert signals["top/clock"].name == "clock"
+        assert signals["top/clock"].sid == "$"
+        assert signals["top/clock"].length == 1
 
     def test_parse_signals_filtered(self, sample_vcd_content: str, tmp_path) -> None:
         """Test parsing specific signals from VCD file."""
@@ -122,10 +116,10 @@ $enddefinitions $end
 
         parser = VCDParser(str(vcd_file))
 
-        with open(str(vcd_file), "rt", encoding="utf-8") as fin:
+        with open(str(vcd_file), encoding="utf-8") as fin:
             all_paths, path_dict = parser._create_path_dict(fin)
 
         assert len(all_paths) == 2
         assert len(path_dict) == 2
-        assert "clock" in path_dict
-        assert "data" in path_dict
+        assert "top/clock" in path_dict
+        assert "top/data" in path_dict

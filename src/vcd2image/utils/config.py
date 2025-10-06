@@ -3,8 +3,6 @@
 import argparse
 import os
 from dataclasses import dataclass
-from typing import List, Optional
-from pathlib import Path
 
 
 @dataclass
@@ -18,8 +16,8 @@ class Config:
 
     # WaveDrom rendering settings
     skin: str = "default"
-    width: Optional[int] = None
-    height: Optional[int] = None
+    width: int | None = None
+    height: int | None = None
 
     # Output settings
     output_format: str = "png"  # png, svg, pdf

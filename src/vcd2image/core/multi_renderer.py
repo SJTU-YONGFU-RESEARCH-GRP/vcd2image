@@ -1,12 +1,10 @@
 """Multi-figure renderer for generating categorized signal plots."""
 
-import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from .categorizer import SignalCategorizer
-from .models import SignalCategory
+from .models import SignalDef
 from .renderer import WaveRenderer
 
 logger = logging.getLogger(__name__)
@@ -26,7 +24,11 @@ class MultiFigureRenderer:
         self.renderer = WaveRenderer(skin)
 
     def render_categorized_figures(
-        self, vcd_file: str, output_dir: str, base_name: str = "waveform", formats: List[str] = None
+        self,
+        vcd_file: str,
+        output_dir: str,
+        base_name: str = "waveform",
+        formats: list[str] | None = None,
     ) -> int:
         """Render categorized figures from VCD file.
 
@@ -93,7 +95,7 @@ class MultiFigureRenderer:
             # Extract signals to JSON
             json_file = output_path / f"{fig_config['filename']}.json"
             self._extract_signals_to_json(
-                vcd_file, fig_config["signals"], str(json_file), all_signals
+                vcd_file, list(fig_config["signals"]), str(json_file), all_signals
             )
 
             # Generate images in requested formats
@@ -111,9 +113,9 @@ class MultiFigureRenderer:
     def _extract_signals_to_json(
         self,
         vcd_file: str,
-        signal_paths: List[str],
+        signal_paths: list[str],
         json_file: str,
-        path_dict: Optional[Dict[str, "SignalDef"]] = None,
+        path_dict: dict[str, "SignalDef"] | None = None,
     ) -> None:
         """Extract specified signals to JSON file.
 

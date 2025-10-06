@@ -2,10 +2,9 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, TextIO
+from typing import TextIO
 
 from .models import SignalDef
-
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ class VCDParser:
         if not self.vcd_file.exists():
             raise FileNotFoundError(f"VCD file not found: {vcd_file}")
 
-    def parse_signals(self, path_list: List[str] = None) -> Dict[str, SignalDef]:
+    def parse_signals(self, path_list: list[str] | None = None) -> dict[str, SignalDef]:
         """Parse signal definitions from VCD file.
 
         Args:
@@ -37,7 +36,7 @@ class VCDParser:
         """
         logger.info(f"Parsing VCD file: {self.vcd_file}")
 
-        with open(self.vcd_file, "rt", encoding="utf-8") as fin:
+        with open(self.vcd_file, encoding="utf-8") as fin:
             all_paths, path_dict = self._create_path_dict(fin)
 
         if path_list:
@@ -46,7 +45,7 @@ class VCDParser:
         logger.info(f"Found {len(path_dict)} signals")
         return path_dict
 
-    def _create_path_dict(self, fin: TextIO) -> tuple[List[str], Dict[str, SignalDef]]:
+    def _create_path_dict(self, fin: TextIO) -> tuple[list[str], dict[str, SignalDef]]:
         """Create path dictionary from VCD definitions section.
 
         Args:
@@ -55,9 +54,9 @@ class VCDParser:
         Returns:
             Tuple of (all_paths, path_dict).
         """
-        hier_list: List[str] = []
-        path_list: List[str] = []
-        path_dict: Dict[str, SignalDef] = {}
+        hier_list: list[str] = []
+        path_list: list[str] = []
+        path_dict: dict[str, SignalDef] = {}
 
         while True:
             line = fin.readline()
@@ -84,8 +83,8 @@ class VCDParser:
                     hier_list.pop()
 
     def _filter_path_dict(
-        self, path_list: List[str], path_dict: Dict[str, SignalDef]
-    ) -> Dict[str, SignalDef]:
+        self, path_list: list[str], path_dict: dict[str, SignalDef]
+    ) -> dict[str, SignalDef]:
         """Filter path dictionary to only include requested signals.
 
         Args:

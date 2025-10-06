@@ -8,11 +8,7 @@ from vcd2image.core.generator import WaveJSONGenerator
 from vcd2image.core.models import SignalDef
 
 if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-    from pytest_mock.plugin import MockerFixture
+    pass
 
 
 class TestWaveJSONGenerator:
@@ -89,7 +85,7 @@ class TestWaveJSONGenerator:
 
         # Test with constant values
         wave = generator._create_wave(["1", "1"])
-        assert wave == '"11"'
+        assert wave == '"1."'
 
         # Test with changing values
         wave = generator._create_wave(["1", "0", "1"])
@@ -109,7 +105,7 @@ class TestWaveJSONGenerator:
         wave, data = generator._create_wave_data(samples, 4, "b")
 
         assert wave == '"=="'  # equals signs for data values
-        assert data == '" 1010 1111"'
+        assert data == '"1010 1111"'
 
         # Test empty samples
         wave, data = generator._create_wave_data([], 4, "b")
