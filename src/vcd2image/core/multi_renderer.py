@@ -89,9 +89,11 @@ class MultiFigureRenderer:
 
         category = plotter.categories
 
-        # Determine clock signal for reference
+        # Determine clock signal for reference from available categorized signals
         clock_signals = [s for s in category.inputs if 'clock' in s.lower() or 'clk' in s.lower()]
         reset_signals = [s for s in category.inputs if 'reset' in s.lower() or 'rst' in s.lower()]
+
+        # Use the first available clock signal (they should already be filtered to top-level)
         clock_signal = clock_signals[0] if clock_signals else None
 
         # Generate figures for each category with enhanced styling
@@ -154,9 +156,26 @@ class MultiFigureRenderer:
             # Create JSON file path in plots subdirectory
             json_file = output_path / "plots" / f"{category_name}.json"
 
+            # Get suggested clock signal for sampling from the original categorizer results
+            from .categorizer import SignalCategorizer
+            from .parser import VCDParser
+
+            parser = VCDParser(str(plotter.vcd_file))
+            signal_dict = parser.parse_signals()
+            categorizer = SignalCategorizer()
+            original_category = categorizer.categorize_signals(signal_dict)
+            clock_signal = categorizer.suggest_clock_signal(original_category)
+
+            # Prepare signals list with clock as first element for WaveExtractor
+            # WaveExtractor expects first signal to be clock for sampling
+            if clock_signal and clock_signal not in signals:
+                signals_with_clock = [clock_signal] + signals
+            else:
+                signals_with_clock = signals
+
             # Use WaveExtractor to generate JSON for these specific signals
             from .extractor import WaveExtractor
-            extractor = WaveExtractor(str(plotter.vcd_file), str(json_file), signals)
+            extractor = WaveExtractor(str(plotter.vcd_file), str(json_file), signals_with_clock)
 
             # Set some basic parameters
             extractor.start_time = 0

@@ -5,20 +5,19 @@ module information including inputs, outputs, wires, and registers.
 """
 
 import re
-from typing import Dict, List, Tuple, Optional, Set
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
 class VerilogModule:
     """Data class to hold Verilog module information."""
     name: str
-    inputs: Dict[str, Tuple[int, str]]  # signal_name -> (width, description)
-    outputs: Dict[str, Tuple[int, str]]
-    wires: Dict[str, Tuple[int, str]]
-    regs: Dict[str, Tuple[int, str]]
-    parameters: Dict[str, str]
+    inputs: dict[str, tuple[int, str]]  # signal_name -> (width, description)
+    outputs: dict[str, tuple[int, str]]
+    wires: dict[str, tuple[int, str]]
+    regs: dict[str, tuple[int, str]]
+    parameters: dict[str, str]
 
 
 class VerilogParser:
@@ -33,15 +32,15 @@ class VerilogParser:
         """
         self.verilog_file = Path(verilog_file)
         self.content: str = ""
-        self.module_name: Optional[str] = None
-        self.module: Optional[VerilogModule] = None
+        self.module_name: str | None = None
+        self.module: VerilogModule | None = None
 
         # Direct access to parsed data for compatibility
-        self.inputs: Dict[str, Tuple[int, str]] = {}
-        self.outputs: Dict[str, Tuple[int, str]] = {}
-        self.wires: Dict[str, Tuple[int, str]] = {}
-        self.regs: Dict[str, Tuple[int, str]] = {}
-        self.parameters: Dict[str, str] = {}
+        self.inputs: dict[str, tuple[int, str]] = {}
+        self.outputs: dict[str, tuple[int, str]] = {}
+        self.wires: dict[str, tuple[int, str]] = {}
+        self.regs: dict[str, tuple[int, str]] = {}
+        self.parameters: dict[str, str] = {}
 
     def parse(self) -> bool:
         """
@@ -54,7 +53,7 @@ class VerilogParser:
             if not self.verilog_file.exists():
                 return False
 
-            with open(self.verilog_file, 'r') as f:
+            with open(self.verilog_file) as f:
                 self.content = f.read()
 
             return self._parse_module()
@@ -91,7 +90,7 @@ class VerilogParser:
 
         return True
 
-    def _parse_inputs(self) -> Dict[str, Tuple[int, str]]:
+    def _parse_inputs(self) -> dict[str, tuple[int, str]]:
         """Parse input port declarations."""
         inputs = {}
 
@@ -113,7 +112,7 @@ class VerilogParser:
 
         return inputs
 
-    def _parse_outputs(self) -> Dict[str, Tuple[int, str]]:
+    def _parse_outputs(self) -> dict[str, tuple[int, str]]:
         """Parse output port declarations."""
         outputs = {}
 
@@ -135,7 +134,7 @@ class VerilogParser:
 
         return outputs
 
-    def _parse_wires(self) -> Dict[str, Tuple[int, str]]:
+    def _parse_wires(self) -> dict[str, tuple[int, str]]:
         """Parse wire declarations."""
         wires = {}
 
@@ -157,7 +156,7 @@ class VerilogParser:
 
         return wires
 
-    def _parse_regs(self) -> Dict[str, Tuple[int, str]]:
+    def _parse_regs(self) -> dict[str, tuple[int, str]]:
         """Parse register declarations."""
         regs = {}
 
@@ -179,7 +178,7 @@ class VerilogParser:
 
         return regs
 
-    def _parse_parameters(self) -> Dict[str, str]:
+    def _parse_parameters(self) -> dict[str, str]:
         """Parse parameter declarations."""
         parameters = {}
 
@@ -193,7 +192,7 @@ class VerilogParser:
 
         return parameters
 
-    def get_signal_info(self, signal_name: str) -> Optional[Tuple[int, str]]:
+    def get_signal_info(self, signal_name: str) -> tuple[int, str] | None:
         """Get information about a specific signal."""
         if not self.module:
             return None
@@ -204,7 +203,7 @@ class VerilogParser:
 
         return all_signals.get(signal_name)
 
-    def get_all_signals(self) -> Set[str]:
+    def get_all_signals(self) -> set[str]:
         """Get all signal names from the module."""
         if not self.module:
             return set()

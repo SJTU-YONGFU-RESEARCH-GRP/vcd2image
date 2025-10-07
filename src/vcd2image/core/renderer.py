@@ -3,12 +3,12 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import matplotlib
+
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class WaveRenderer:
         logger.info(f"HTML saved to: {html_file}")
         return 0
 
-    def _render_waveform_to_image(self, wavejson: Dict[str, Any], image_path: Path) -> None:
+    def _render_waveform_to_image(self, wavejson: dict[str, Any], image_path: Path) -> None:
         """Render waveform data to image using matplotlib.
 
         Args:
@@ -109,7 +109,7 @@ class WaveRenderer:
             axes = [axes]
 
         # Plot each signal in its own subplot
-        for i, (signal, ax) in enumerate(zip(signals, axes)):
+        for i, (signal, ax) in enumerate(zip(signals, axes, strict=False)):
             self._plot_single_signal_subplot(ax, signal, time_steps, i == len(signals) - 1)
 
         # Set common x-axis label only on the bottom subplot
@@ -122,7 +122,7 @@ class WaveRenderer:
         fig.savefig(image_path, dpi=150, bbox_inches='tight')
         plt.close(fig)
 
-    def _parse_wavejson(self, wavejson: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], int]:
+    def _parse_wavejson(self, wavejson: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
         """Parse WaveJSON format into signal data.
 
         Args:
@@ -148,7 +148,6 @@ class WaveRenderer:
                     total_time_steps = max(total_time_steps, len(signal_info["values"]))
             elif isinstance(item, list) and len(item) > 1:
                 # Time group with multiple signals
-                time_origin = item[0] if isinstance(item[0], str) else "0"
                 for sub_item in item[1:]:
                     if isinstance(sub_item, dict) and "name" in sub_item and "wave" in sub_item:
                         signal_info = self._parse_signal(sub_item)
@@ -158,7 +157,7 @@ class WaveRenderer:
 
         return signals, total_time_steps
 
-    def _parse_signal(self, signal_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _parse_signal(self, signal_dict: dict[str, Any]) -> dict[str, Any] | None:
         """Parse a single signal from WaveJSON.
 
         Args:
@@ -198,7 +197,7 @@ class WaveRenderer:
             "is_clock": "p" in wave_str
         }
 
-    def _parse_wave_string(self, wave_str: str) -> List[str]:
+    def _parse_wave_string(self, wave_str: str) -> list[str]:
         """Parse wave string into value list.
 
         Args:
@@ -226,7 +225,7 @@ class WaveRenderer:
 
         return values
 
-    def _plot_single_signal_subplot(self, ax: plt.Axes, signal: Dict[str, Any], time_steps: int, is_bottom: bool) -> None:
+    def _plot_single_signal_subplot(self, ax: plt.Axes, signal: dict[str, Any], time_steps: int, is_bottom: bool) -> None:
         """Plot a single signal in its own subplot with professional digital styling.
 
         Args:
@@ -269,7 +268,7 @@ class WaveRenderer:
         # Plot the signal with the appropriate color
         self._plot_signal_data(ax, values, time_steps, color)
 
-    def _get_signal_color(self, signal: Dict[str, Any]) -> str:
+    def _get_signal_color(self, signal: dict[str, Any]) -> str:
         """Get the appropriate color for a signal based on its type.
 
         Args:
@@ -301,7 +300,7 @@ class WaveRenderer:
         else:
             return "#9467bd"  # Purple
 
-    def _plot_signal_data(self, ax: plt.Axes, values: List[str], time_steps: int, color: str) -> None:
+    def _plot_signal_data(self, ax: plt.Axes, values: list[str], time_steps: int, color: str) -> None:
         """Plot signal data in the given axes with sharp digital transitions.
 
         Args:
@@ -365,7 +364,7 @@ class WaveRenderer:
                solid_capstyle='butt', solid_joinstyle='miter')
 
 
-    def _generate_html(self, wavejson: Dict[str, Any]) -> str:
+    def _generate_html(self, wavejson: dict[str, Any]) -> str:
         """Generate simple HTML page displaying the WaveJSON data.
 
         Args:

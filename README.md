@@ -91,7 +91,7 @@ renderer.render_to_image('timer.json', 'timer.png')
 
 # Auto plotting: Generate single organized plot
 multi_renderer = MultiFigureRenderer()
-multi_renderer.render_lazy_plot('timer.vcd', 'timer_auto.png')
+multi_renderer.render_auto_plot('timer.vcd', 'timer_auto.png')
 
 # Auto plotting: Generate multiple categorized figures
 multi_renderer.render_categorized_figures(
@@ -248,7 +248,7 @@ Automatically generates categorized timing diagrams from VCD files with intellig
 ```python
 class MultiFigureRenderer:
     def __init__(self, skin: str = "default") -> None
-    def render_lazy_plot(self, vcd_file: str, output_file: str) -> int
+    def render_auto_plot(self, vcd_file: str, output_file: str) -> int
     def render_categorized_figures(
         self,
         vcd_file: str,

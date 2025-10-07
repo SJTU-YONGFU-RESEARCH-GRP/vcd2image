@@ -158,7 +158,6 @@ class TestCLIMain:
             list_signals=False,
             auto_plot=False,
             auto_dir=None,
-            auto_plot=False,
             plot_dir=None,
             plot_formats=None,
         )

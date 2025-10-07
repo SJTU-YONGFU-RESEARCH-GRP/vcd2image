@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vcd2image"
 version = "0.1.0"
-description = "Convert VCD files to timing diagram images via WaveJSON"
+description = "Convert VCD files to timing diagram images using Python plotting"
 readme = "README.md"
 license = {text = "CC-BY-4.0"}
 requires-python = ">=3.10"
@@ -15,7 +15,7 @@ authors = [
 maintainers = [
     {name = "VCD2Image Team"}
 ]
-keywords = ["vcd", "wavedrom", "timing", "diagram", "verilog", "rtl"]
+keywords = ["vcd", "matplotlib", "timing", "diagram", "verilog", "rtl", "waveform"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -42,8 +42,8 @@ dev = [
     "mypy>=1.10.0",
 ]
 rendering = [
-    "playwright>=1.45.0",
-    "pillow>=10.0.0",
+    "matplotlib>=3.6.0",
+    "numpy>=1.21.0",
 ]
 
 [project.scripts]

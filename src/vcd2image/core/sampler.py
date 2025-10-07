@@ -38,8 +38,9 @@ class SignalSampler:
         sample_groups: list[dict[str, list[str]]] = []
 
         # Initialize value and sample dictionaries
-        value_dict = dict.fromkeys([clock_sid] + signal_sids, "x")
-        sample_dict: dict[str, list[str]] = dict.fromkeys([clock_sid] + signal_sids, [])
+        # Note: dict.fromkeys() with mutable defaults shares the same object, so create individually
+        value_dict = {sid: "x" for sid in [clock_sid] + signal_sids}
+        sample_dict = {sid: [] for sid in [clock_sid] + signal_sids}
 
         clock_prev = value_dict[clock_sid]  # initial clock value
 
@@ -86,24 +87,16 @@ class SignalSampler:
             if char == "#":
                 next_now = words[0][1:]
                 self.now = int(next_now)
-                old_clock = clock_prev
 
-                # Peek at next line to get new clock value
-                pos = fin.tell()
-                next_line = fin.readline()
-                fin.seek(pos)
+                # Sample at regular time intervals instead of just clock edges
+                # This gives a more complete view of signal behavior
+                if self.start_time <= self.now and (self.end_time == 0 or self.now <= self.end_time):
+                    # Check if we should sample at this time point
+                    # Sample every time unit for now (could be made configurable)
+                    should_sample = True  # Sample at every timestamp for complete waveform
 
-                new_clock = old_clock
-                if next_line:
-                    next_words = next_line.split()
-                    if next_words and len(next_words[0]) > 1 and next_words[0][1:] == clock_sid:
-                        new_clock = next_words[0][0]
-
-                # Detect negative clock edge
-                if old_clock == "1" and new_clock == "0":
-                    # Check if we're within the sampling time range
-                    if self.start_time <= self.now and (self.end_time == 0 or self.now <= self.end_time):
-                        # Sample all signals
+                    if should_sample:
+                        # Sample all signals at this time point
                         for sid in sample_dict:
                             sample_dict[sid].append(value_dict[sid])
                         data_count += 1
@@ -115,8 +108,6 @@ class SignalSampler:
                             for sid in sample_dict:
                                 sample_dict[sid].clear()
                             data_count = 0
-
-                clock_prev = new_clock
                 continue
 
             raise ValueError(f"Unexpected character in VCD file: '{char}'")

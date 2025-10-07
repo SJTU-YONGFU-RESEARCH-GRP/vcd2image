@@ -36,7 +36,14 @@ class WaveJSONGenerator:
             Complete WaveJSON string.
         """
         json_parts = []
-        json_parts.append(self._create_header())
+
+        # Get clock samples from first sample group
+        clock_sid = self.path_dict[self.path_list[0]].sid
+        clock_samples = []
+        for sample_dict in sample_groups:
+            clock_samples.extend(sample_dict.get(clock_sid, []))
+
+        json_parts.append(self._create_header(clock_samples))
 
         for sample_dict in sample_groups:
             json_parts.append(self._create_body(sample_dict))
@@ -45,14 +52,17 @@ class WaveJSONGenerator:
 
         return "\n".join(json_parts)
 
-    def _create_header(self) -> str:
-        """Create JSON header with clock signal.
+    def _create_header(self, clock_samples: list[str]) -> str:
+        """Create JSON header with clock signal using actual sampled data.
+
+        Args:
+            clock_samples: Actual sampled clock signal values
 
         Returns:
             JSON header string.
         """
         name = f'"{self.clock_name}"'.ljust(self.name_width + 2)
-        wave = f'"{"p" + "." * (self.wave_chunk - 1)}"'
+        wave = self._create_wave(clock_samples)
         return f'{{ "head": {{"tock":1}},\n  "signal": [\n  {{   "name": {name}, "wave": {wave} }}'
 
     def _create_body(self, sample_dict: dict[str, list[str]]) -> str:

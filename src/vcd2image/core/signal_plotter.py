@@ -4,16 +4,18 @@ This module provides advanced signal plotting capabilities with golden reference
 categorization, and comprehensive analysis for digital circuit simulation results.
 """
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Any
-from dataclasses import dataclass
-import numpy as np
+from typing import Any
 
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+from .models import SignalDef
+from .parser import VCDParser
 from .verilog_parser import VerilogParser
-from ..utils.config import Config
+
 
 # Simple logger class for enhanced plotting
 class Logger:
@@ -38,16 +40,16 @@ class Logger:
 @dataclass
 class SignalCategory:
     """Data class to hold categorized signals."""
-    inputs: List[str]
-    outputs: List[str]
-    internal: List[str]
-    all_signals: List[str]
+    inputs: list[str] = field(default_factory=list)
+    outputs: list[str] = field(default_factory=list)
+    internal: list[str] = field(default_factory=list)
+    all_signals: list[str] = field(default_factory=list)
 
 
 class SignalPlotter:
     """Generates enhanced plots directly from VCD files with golden reference categorization."""
 
-    def __init__(self, vcd_file: str, verilog_file: Optional[str] = None,
+    def __init__(self, vcd_file: str, verilog_file: str | None = None,
                  output_dir: str = "plots"):
         """
         Initialize the SignalPlotter.
@@ -67,9 +69,10 @@ class SignalPlotter:
         self.plots_dir.mkdir(parents=True, exist_ok=True)
 
         self.logger = Logger()
-        self.data: Optional[pd.DataFrame] = None
-        self.categories: Optional[SignalCategory] = None
-        self.vcd_parser = None
+        self.data: pd.DataFrame | None = None
+        self.categories: SignalCategory | None = None
+        self.vcd_parser: VCDParser | None = None
+        self.parser: VerilogParser | None = None
 
         # Set up matplotlib style
         plt.style.use('default')
@@ -77,13 +80,13 @@ class SignalPlotter:
 
     def load_data(self) -> bool:
         """
-        Load and parse VCD data directly.
+        Load and parse VCD data directly, extracting actual waveform data for plotting.
 
         Returns:
             True if data loaded successfully, False otherwise
         """
         try:
-            # Import VCD parser
+            # Import VCD parser and signal sampler
             from .parser import VCDParser
 
             # Parse VCD file to get signal data
@@ -94,19 +97,327 @@ class SignalPlotter:
                 self.logger.error("No signals found in VCD file")
                 return False
 
-            # Convert signal data to DataFrame format for compatibility
-            # We'll use synthetic time-series data for demonstration
-            # In a real implementation, you would extract actual time-series data from VCD
-            self._create_synthetic_dataframe(list(all_signals.keys()))
+            # Extract actual waveform data from VCD instead of synthetic data
+            self._extract_actual_waveform_data(all_signals)
 
-            self.logger.info(f"Loaded VCD data with {len(all_signals)} signals")
+            self.logger.info(f"Loaded actual VCD data with {len(all_signals)} signals")
             return True
 
         except Exception as e:
             self.logger.error(f"Error loading VCD file: {e}")
             return False
 
-    def _create_synthetic_dataframe(self, signal_names: List[str]) -> None:
+    def _extract_actual_waveform_data(self, signal_dict: dict[str, "SignalDef"]) -> None:
+        """Extract actual waveform data from JSON files and create DataFrame for plotting."""
+        import pandas as pd
+        import json
+        import tempfile
+        import os
+
+        # Filter out signals with duplicate SIDs to avoid conflicts
+        sid_to_paths = {}
+        for path, signal_def in signal_dict.items():
+            sid = signal_def.sid
+            if sid not in sid_to_paths:
+                sid_to_paths[sid] = []
+            sid_to_paths[sid].append(path)
+
+        # Only include signals with unique SIDs
+        valid_signal_paths = []
+        for sid, paths in sid_to_paths.items():
+            if len(paths) == 1:
+                valid_signal_paths.append(paths[0])
+            else:
+                # Prefer top-level signals (fewer path separators)
+                best_path = min(paths, key=lambda p: p.count('/'))
+                valid_signal_paths.append(best_path)
+                other_paths = [p for p in paths if p != best_path]
+                self.logger.info(f"Using {best_path} (preferred over: {other_paths})")
+
+        if not valid_signal_paths:
+            self.logger.warning("No valid signals found, falling back to synthetic data")
+            self._create_synthetic_dataframe(list(signal_dict.keys()))
+            return
+
+        # Create temporary JSON file using WaveExtractor
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_json:
+            temp_json_path = temp_json.name
+
+        try:
+            # Ensure we have a clock signal for WaveExtractor (it expects first signal to be clock)
+            from .categorizer import SignalCategorizer
+            categorizer = SignalCategorizer()
+            category = categorizer.categorize_signals(signal_dict)
+            clock_signal = categorizer.suggest_clock_signal(category)
+
+            # If suggested clock is filtered out, use the top-level clock
+            if clock_signal not in valid_signal_paths and 'clock' in clock_signal:
+                # Find available clock signal
+                available_clocks = [s for s in valid_signal_paths if 'clock' in s]
+                if available_clocks:
+                    clock_signal = available_clocks[0]
+
+            # Put clock signal first for WaveExtractor
+            signal_paths = valid_signal_paths[:]
+            if clock_signal in signal_paths:
+                signal_paths.remove(clock_signal)
+                signal_paths.insert(0, clock_signal)
+
+            # Use WaveExtractor to generate JSON for valid signals
+            from .extractor import WaveExtractor
+            extractor = WaveExtractor(str(self.vcd_file), temp_json_path, signal_paths)
+            extractor.start_time = 0
+            extractor.end_time = 0  # Extract full range
+
+            result = extractor.execute()
+            if result != 0:
+                self.logger.warning(f"WaveExtractor failed with code {result}, falling back to synthetic data")
+                self._create_synthetic_dataframe(list(signal_dict.keys()))
+                return
+
+            # Parse the JSON data
+            with open(temp_json_path, 'r', encoding='utf-8') as f:
+                wavejson = json.load(f)
+
+            # Convert WaveJSON to DataFrame format for plotting
+            self._wavejson_to_dataframe(wavejson, valid_signal_paths)
+
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_json_path):
+                os.unlink(temp_json_path)
+
+    def _wavejson_to_dataframe(self, wavejson: dict, signal_paths: list[str]) -> None:
+        """Convert WaveJSON data to pandas DataFrame format."""
+        import pandas as pd
+
+        # Parse WaveJSON structure
+        signals = wavejson.get('signal', [])
+        if len(signals) < 3:
+            self.logger.warning("Invalid WaveJSON structure")
+            self._create_synthetic_dataframe(signal_paths)
+            return
+
+        signal_data = {'test_case': []}
+
+        # Create mapping from signal names to their data
+        signal_map = {}
+
+        # First signal might be separate (clock)
+        if isinstance(signals[0], dict) and 'name' in signals[0]:
+            signal_map[signals[0]['name']] = signals[0]
+
+        # Signals in the array at index 2
+        if len(signals) > 2 and isinstance(signals[2], list) and len(signals[2]) > 1:
+            for entry in signals[2][1:]:  # Skip time start marker
+                if isinstance(entry, dict) and 'name' in entry:
+                    signal_map[entry['name']] = entry
+
+        # Create mapping from JSON signal names back to full paths
+        name_to_path = {}
+        for path in signal_paths:
+            name = path.split('/')[-1]  # Get last part of path
+            name_to_path[name] = path
+
+        # Process each signal found in JSON
+        max_length = 0
+        for json_name, entry in signal_map.items():
+            if json_name in name_to_path:
+                signal_path = name_to_path[json_name]
+                wave_str = entry.get('wave', '')
+                data_str = entry.get('data')
+
+                # Decode WaveJSON wave string to time series
+                values = self._decode_wavejson_wave(wave_str, data_str)
+                signal_data[signal_path] = values
+                max_length = max(max_length, len(values))
+
+        # If no signals were found, fall back to synthetic data
+        if max_length == 0 or len(signal_data) <= 1:
+            self.logger.warning("No signals parsed from WaveJSON, falling back to synthetic data")
+            self._create_synthetic_dataframe(signal_paths)
+            return
+
+        # Ensure all expected signals have data
+        for signal_path in signal_paths:
+            if signal_path not in signal_data:
+                # Signal not found in JSON, fill with zeros
+                signal_data[signal_path] = [0] * max_length
+            elif len(signal_data[signal_path]) < max_length:
+                # Pad shorter signals
+                last_val = signal_data[signal_path][-1] if signal_data[signal_path] else 0
+                signal_data[signal_path].extend([last_val] * (max_length - len(signal_data[signal_path])))
+
+        # Add test case numbers
+        signal_data['test_case'] = list(range(max_length))
+
+        # Create DataFrame
+        self.data = pd.DataFrame(signal_data)
+
+        # Save CSV file for debugging and replotting
+        csv_file = self.plots_dir / "signal_data.csv"
+        self.data.to_csv(csv_file, index=False)
+        self.logger.info(f"Saved signal data to CSV: {csv_file}")
+
+    def _decode_wavejson_wave(self, wave_str: str, data_str: str | None = None) -> list[int]:
+        """Decode WaveJSON wave string to list of integer values."""
+        values = []
+        data_values = []
+
+        # Parse data string if present (for multi-bit signals)
+        if data_str:
+            # Data format: "val1 val2 val3 ..." (space separated)
+            data_values = [int(x.strip()) for x in data_str.split() if x.strip()]
+
+        i = 0
+        data_idx = 0
+
+        while i < len(wave_str):
+            char = wave_str[i]
+
+            if char in ('0', '1'):
+                # Binary value
+                values.append(int(char))
+            elif char == 'x':
+                # Unknown - treat as 0
+                values.append(0)
+            elif char == 'z':
+                # High impedance - treat as 0
+                values.append(0)
+            elif char == '=':
+                # Multi-bit data follows
+                if data_idx < len(data_values):
+                    values.append(data_values[data_idx])
+                    data_idx += 1
+                else:
+                    values.append(0)
+            elif char == '.':
+                # Repeat previous value
+                if values:
+                    values.append(values[-1])
+                else:
+                    values.append(0)
+            elif char == '|':
+                # Cycle separator - skip
+                pass
+            else:
+                # Unknown character - treat as 0
+                values.append(0)
+
+            i += 1
+
+        return values
+
+    def _json_to_dataframe(self, wavejson: dict, signal_paths: list[str]) -> pd.DataFrame | None:
+        """Convert category WaveJSON to DataFrame for CSV export."""
+        import pandas as pd
+
+        # Parse WaveJSON structure
+        signals = wavejson.get('signal', [])
+        if len(signals) < 3:
+            return None
+
+        signal_data = {'test_case': []}
+
+        # Create mapping from signal names to their data
+        signal_map = {}
+
+        # First signal might be separate (clock)
+        if isinstance(signals[0], dict) and 'name' in signals[0]:
+            signal_map[signals[0]['name']] = signals[0]
+
+        # Signals in the array at index 2
+        if len(signals) > 2 and isinstance(signals[2], list) and len(signals[2]) > 1:
+            for entry in signals[2][1:]:  # Skip time start marker
+                if isinstance(entry, dict) and 'name' in entry:
+                    signal_map[entry['name']] = entry
+
+        # Create mapping from JSON signal names back to full paths
+        name_to_path = {}
+        for path in signal_paths:
+            name = path.split('/')[-1]  # Get last part of path
+            name_to_path[name] = path
+
+        # Process each signal found in JSON
+        max_length = 0
+        for json_name, entry in signal_map.items():
+            if json_name in name_to_path:
+                signal_path = name_to_path[json_name]
+                wave_str = entry.get('wave', '')
+                data_str = entry.get('data')
+
+                # Decode WaveJSON wave string to time series
+                values = self._decode_wavejson_wave(wave_str, data_str)
+                signal_data[signal_path] = values
+                max_length = max(max_length, len(values))
+
+        if max_length == 0:
+            return None
+
+        # Ensure all expected signals have data
+        for signal_path in signal_paths:
+            if signal_path not in signal_data:
+                signal_data[signal_path] = [0] * max_length
+            elif len(signal_data[signal_path]) < max_length:
+                last_val = signal_data[signal_path][-1] if signal_data[signal_path] else 0
+                signal_data[signal_path].extend([last_val] * (max_length - len(signal_data[signal_path])))
+
+        # Add test case numbers
+        signal_data['test_case'] = list(range(max_length))
+
+        return pd.DataFrame(signal_data)
+
+    def load_from_csv(self, csv_file: str) -> bool:
+        """Load signal data from CSV file for replotting."""
+        import pandas as pd
+
+        try:
+            csv_path = Path(csv_file)
+            if not csv_path.exists():
+                self.logger.error(f"CSV file not found: {csv_file}")
+                return False
+
+            self.data = pd.read_csv(csv_path)
+            self.logger.info(f"Loaded data from CSV: {csv_file} ({len(self.data)} samples)")
+
+            # Extract signal columns (exclude test_case)
+            signal_columns = [col for col in self.data.columns if col != 'test_case']
+
+            # Create basic categorization for loaded data
+            self.categories = SignalCategory(
+                inputs=[],  # Will be set based on available signals
+                outputs=[],
+                internal=signal_columns,
+                all_signals=signal_columns
+            )
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to load CSV file: {e}")
+            return False
+
+    def replot_from_csv(self, csv_file: str, output_dir: str = "replots") -> bool:
+        """Replot signals from CSV file."""
+        if not self.load_from_csv(csv_file):
+            return False
+
+        # Set output directory
+        original_output_dir = self.output_dir
+        self.output_dir = Path(output_dir)
+        self.plots_dir = self.output_dir / "plots"
+        self.plots_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Generate plots from the loaded CSV data
+            self.categorize_signals()
+            return self.generate_plots()
+        finally:
+            # Restore original output directory
+            self.output_dir = original_output_dir
+            self.plots_dir = original_output_dir / "plots"
+
+    def _create_synthetic_dataframe(self, signal_names: list[str]) -> None:
         """Create synthetic DataFrame from signal names for demonstration."""
         # Generate synthetic test data for demonstration
         num_test_cases = 100
@@ -168,8 +479,27 @@ class SignalPlotter:
         from .parser import VCDParser
 
         # Use the categorizer for accurate signal classification
+        # Use the same signal filtering as in load_data
         parser = VCDParser(str(self.vcd_file))
-        signal_dict = parser.parse_signals()
+        full_signal_dict = parser.parse_signals()
+
+        # Apply the same filtering as in _extract_actual_waveform_data
+        sid_to_paths = {}
+        for path, signal_def in full_signal_dict.items():
+            sid = signal_def.sid
+            if sid not in sid_to_paths:
+                sid_to_paths[sid] = []
+            sid_to_paths[sid].append(path)
+
+        filtered_paths = []
+        for sid, paths in sid_to_paths.items():
+            if len(paths) == 1:
+                filtered_paths.append(paths[0])
+            else:
+                best_path = min(paths, key=lambda p: p.count('/'))
+                filtered_paths.append(best_path)
+
+        signal_dict = {path: full_signal_dict[path] for path in filtered_paths}
 
         categorizer = SignalCategorizer()
         category = categorizer.categorize_signals(signal_dict)
@@ -186,7 +516,7 @@ class SignalPlotter:
                         f"{len(category.inputs)} inputs, {len(category.outputs)} outputs, {len(category.internals)} internal")
         return True
 
-    def _categorize_from_verilog(self, all_signals: List[str]) -> bool:
+    def _categorize_from_verilog(self, all_signals: list[str]) -> bool:
         """Categorize signals using Verilog parser information with enhanced signal type detection."""
         try:
             parser = VerilogParser(str(self.verilog_file))
@@ -275,7 +605,7 @@ class SignalPlotter:
         ]
         return any(pattern in signal_lower for pattern in reset_patterns)
 
-    def _categorize_by_heuristic(self, all_signals: List[str]) -> bool:
+    def _categorize_by_heuristic(self, all_signals: list[str]) -> bool:
         """Categorize signals using enhanced heuristic rules."""
         clocks = []
         resets = []
@@ -373,7 +703,7 @@ class SignalPlotter:
             return False
 
     def _generate_category_jsons(self) -> None:
-        """Generate JSON files for each signal category."""
+        """Generate JSON files for each signal category using WaveExtractor."""
         from .extractor import WaveExtractor
 
         # Define categories to generate JSON for
@@ -390,7 +720,7 @@ class SignalPlotter:
                 continue
 
             try:
-                # Create a temporary JSON file for this category
+                # Create JSON file path
                 json_file = self.plots_dir / filename
 
                 # Use WaveExtractor to generate JSON for these specific signals
@@ -404,6 +734,23 @@ class SignalPlotter:
 
                 if result == 0 and json_file.exists():
                     self.logger.info(f"Generated JSON file for {category_name}: {filename}")
+
+                    # Also generate CSV for this category
+                    try:
+                        import json
+                        with open(json_file, 'r', encoding='utf-8') as f:
+                            category_json = json.load(f)
+
+                        # Convert JSON to DataFrame and save as CSV
+                        category_signal_paths = signals
+                        category_data = self._json_to_dataframe(category_json, category_signal_paths)
+
+                        if category_data is not None and not category_data.empty:
+                            csv_file = json_file.with_suffix('.csv')
+                            category_data.to_csv(csv_file, index=False)
+                            self.logger.info(f"Generated CSV file for {category_name}: {csv_file.name}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to generate CSV for {category_name}: {e}")
                 else:
                     self.logger.warning(f"Failed to generate JSON for {category_name}: WaveExtractor returned {result}")
 
@@ -466,7 +813,7 @@ class SignalPlotter:
             color='mixed'
         )
 
-    def _create_enhanced_signal_plot(self, signals: List[str], title: str,
+    def _create_enhanced_signal_plot(self, signals: list[str], title: str,
                                    filename: str, color: str) -> None:
         """
         Create an enhanced plot for the given signals with golden reference styling.
@@ -489,15 +836,15 @@ class SignalPlotter:
         else:
             self._create_single_enhanced_plot(signals, title, filename, color)
 
-    def _get_enhanced_signal_colors(self, signals: List[str], base_color: str) -> List[str]:
+    def _get_enhanced_signal_colors(self, signals: list[str], base_color: str) -> list[str]:
         """Generate enhanced colors for digital signals based on signal type and golden references."""
         colors = []
 
         # Enhanced color palettes for different signal types
         color_palettes = {
-            'clock': ['#FF0000', '#FF4444', '#FF8888', '#FFCCCC'],  # Pure red tones for clocks
-            'reset': ['#00FFFF', '#44FFFF', '#88FFFF', '#CCFFFF'],  # Pure cyan tones for resets
-            'input': ['#0000FF', '#0000FF', '#0000FF', '#0000FF'],  # Pure blue for all inputs
+            'clock': ['#000080', '#0000A0', '#0000C0', '#0000E0'],  # Dark blue tones for clocks
+            'reset': ['#004080', '#0060A0', '#0080C0', '#00A0E0'],  # Dark blue-cyan tones for resets
+            'input': ['#000080', '#0000A0', '#0000C0', '#0000E0'],  # Dark blue tones for inputs
             'output': ['#800080', '#A020F0', '#B030F0', '#C040F0'], # Pure purple tones for outputs
             'internal': ['#008000', '#008000', '#008000', '#008000'], # Pure green for all internal
             'data': ['#A8A8A8', '#B8B8B8', '#C8C8C8', '#D8D8D8']   # Gray tones for generic data
@@ -508,11 +855,11 @@ class SignalPlotter:
             for signal in signals:
                 if signal in self.categories.inputs:
                     if self._is_clock_signal(signal):
-                        colors.append('#FF0000')  # Pure red for clock inputs
+                        colors.append('#000080')  # Dark blue for clock inputs
                     elif self._is_reset_signal(signal):
-                        colors.append('#00FFFF')  # Pure cyan for reset inputs
+                        colors.append('#004080')  # Dark blue-cyan for reset inputs
                     else:
-                        colors.append('#0000FF')  # Pure blue for data inputs
+                        colors.append('#0000A0')  # Dark blue for data inputs
                 elif signal in self.categories.outputs:
                     colors.append('#800080')  # Pure purple for outputs
                 else:
@@ -533,13 +880,13 @@ class SignalPlotter:
             palette = color_palettes['input']
 
         # Assign colors to signals, cycling through the palette
-        for i, signal in enumerate(signals):
+        for i, _signal in enumerate(signals):
             color_idx = i % len(palette)
             colors.append(palette[color_idx])
 
         return colors
 
-    def _create_single_enhanced_plot(self, signals: List[str], title: str,
+    def _create_single_enhanced_plot(self, signals: list[str], title: str,
                                    filename: str, color: str) -> None:
         """Create a single enhanced plot for the given signals with golden reference styling."""
         fig, axes = plt.subplots(len(signals), 1, figsize=(14, 3.5 * len(signals)))
@@ -618,7 +965,7 @@ class SignalPlotter:
             return 1  # Default to 1-bit if no parser available
 
         # Check all signal dictionaries for the signal width
-        all_signals = {**self.parser.inputs, **self.parser.outputs,
+        all_signals: dict[str, tuple[int, str]] = {**self.parser.inputs, **self.parser.outputs,
                       **self.parser.wires, **self.parser.regs}
 
         if signal_name in all_signals:
@@ -641,12 +988,12 @@ class SignalPlotter:
                 prev_val = signal_data.iloc[i]
 
         # Add annotations for first few transitions
-        for i, (idx, val) in enumerate(transitions[:3]):  # Limit to first 3 transitions
+        for _i, (idx, val) in enumerate(transitions[:3]):  # Limit to first 3 transitions
             ax.annotate(f'{int(val)}', xy=(test_cases.iloc[idx], val),
                        xytext=(5, 5 if val == 1 else -15),
                        textcoords='offset points',
                        fontsize=8, color=color, fontweight='bold',
-                       bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8))
+                       bbox={'boxstyle': 'round,pad=0.2', 'facecolor': 'white', 'alpha': 0.8})
 
     def _add_enhanced_bus_value_annotations(self, ax, test_cases, signal_data, color, width):
         """Add enhanced decimal and hex annotations for multi-bit bus signals."""
@@ -680,11 +1027,11 @@ class SignalPlotter:
             ax.annotate(annotation_text, xy=(test_cases.iloc[idx], val),
                        xytext=(5, y_offset), textcoords='offset points',
                        fontsize=7, color=color, fontweight='bold',
-                       bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9),
+                       bbox={'boxstyle': 'round,pad=0.3', 'facecolor': 'white', 'alpha': 0.9},
                        ha='left', va='center' if y_offset > 0 else 'top',
                        linespacing=0.8)
 
-    def get_signal_statistics(self) -> Dict[str, Dict[str, float]]:
+    def get_signal_statistics(self) -> dict[str, dict[str, float]]:
         """
         Get enhanced statistics for all signals with golden reference analysis.
 
@@ -760,7 +1107,7 @@ class SignalPlotter:
 
         return "\n".join(report)
 
-    def _extract_module_info(self) -> Dict[str, Any]:
+    def _extract_module_info(self) -> dict[str, Any]:
         """Extract comprehensive module information from Verilog parser."""
         module_info = {
             'module_name': 'Unknown',
@@ -832,7 +1179,7 @@ class SignalPlotter:
         else:
             return 'Digital Circuit'
 
-    def _determine_clock_domain(self, inputs: Dict) -> str:
+    def _determine_clock_domain(self, inputs: dict) -> str:
         """Determine clock domain information from input signals."""
         clock_signals = [name for name in inputs.keys() if self._is_clock_signal(name)]
 
@@ -843,7 +1190,7 @@ class SignalPlotter:
         else:
             return f'Multiple clock domains ({", ".join(clock_signals)})'
 
-    def _generate_overview_section(self) -> List[str]:
+    def _generate_overview_section(self) -> list[str]:
         """Generate the overview section of the report."""
         section = []
 
@@ -868,7 +1215,7 @@ class SignalPlotter:
 
         return section
 
-    def _generate_module_info_section(self, module_info: Dict[str, Any]) -> List[str]:
+    def _generate_module_info_section(self, module_info: dict[str, Any]) -> list[str]:
         """Generate the module information section."""
         section = []
 
@@ -953,7 +1300,7 @@ class SignalPlotter:
         else:
             return "Signal"
 
-    def _generate_signal_statistics_section(self, stats: Dict[str, Dict]) -> List[str]:
+    def _generate_signal_statistics_section(self, stats: dict[str, dict]) -> list[str]:
         """Generate the signal statistics section."""
         section = []
 
@@ -1020,7 +1367,7 @@ class SignalPlotter:
 
         return section
 
-    def _get_signal_description(self, signal: str, stats: Dict) -> str:
+    def _get_signal_description(self, signal: str, stats: dict) -> str:
         """Generate a description for a signal based on its statistics and golden reference analysis."""
         unique_vals = stats.get('unique_values', 0)
 
@@ -1031,7 +1378,7 @@ class SignalPlotter:
             range_val = stats.get('max', 0) - stats.get('min', 0)
             return f"{unique_vals} unique values, range: {range_val}"
 
-    def _generate_activity_summary(self, stats: Dict[str, Dict]) -> str:
+    def _generate_activity_summary(self, stats: dict[str, dict]) -> str:
         """Generate signal activity summary with golden reference insights."""
         lines = []
 
@@ -1059,11 +1406,11 @@ class SignalPlotter:
         reset_signals = [s for s in self.categories.inputs if self._is_reset_signal(s)]
         if reset_signals:
             reset_active = stats.get('inputs', {}).get(reset_signals[0], {}).get('mean', 0)
-            lines.append(".1f")
+            lines.append(f"- **Reset Signals:** {len(reset_signals)} detected, {reset_active:.1f}% active")
 
         return "\n".join(lines)
 
-    def _generate_timing_analysis_section(self, stats: Dict[str, Dict]) -> List[str]:
+    def _generate_timing_analysis_section(self, stats: dict[str, dict]) -> list[str]:
         """Generate timing and performance analysis section."""
         section = []
 
@@ -1083,7 +1430,7 @@ class SignalPlotter:
         enable_signals = [s for s in self.categories.inputs if 'enable' in s.lower() or 'en' in s.lower()]
         if enable_signals:
             enable_active = stats.get('inputs', {}).get(enable_signals[0], {}).get('mean', 0)
-            section.append(".1f")
+            section.append(f"- **Enable Signals:** {len(enable_signals)} detected, {enable_active:.1f}% active")
 
         # Counter-specific analysis (if applicable)
         counter_signals = [s for s in self.categories.outputs if 'count' in s.lower()]
@@ -1109,7 +1456,7 @@ class SignalPlotter:
 
         return section
 
-    def _generate_visual_analysis_section(self) -> List[str]:
+    def _generate_visual_analysis_section(self) -> list[str]:
         """Generate visual analysis section."""
         section = []
 
@@ -1155,7 +1502,7 @@ class SignalPlotter:
 
         return section
 
-    def _generate_relationships_section(self) -> List[str]:
+    def _generate_relationships_section(self) -> list[str]:
         """Generate signal relationships and dependencies section."""
         section = []
 
@@ -1205,7 +1552,7 @@ class SignalPlotter:
 
         return section
 
-    def _generate_recommendations_section(self, module_info: Dict[str, Any]) -> List[str]:
+    def _generate_recommendations_section(self, module_info: dict[str, Any]) -> list[str]:
         """Generate recommendations and insights section."""
         section = []
 

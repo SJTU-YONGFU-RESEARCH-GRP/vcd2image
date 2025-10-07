@@ -102,11 +102,11 @@ class SignalCategorizer:
         path_lower = path.lower()
 
         # Check for clock signals first
-        if self._matches_any_pattern(name, self.clock_patterns):
+        if self._matches_any_pattern(name, self.clock_patterns) or self._matches_any_pattern(path_lower, self.clock_patterns):
             return SignalType.CLOCK
 
         # Check for reset signals
-        if self._matches_any_pattern(name, self.reset_patterns):
+        if self._matches_any_pattern(name, self.reset_patterns) or self._matches_any_pattern(path_lower, self.reset_patterns):
             return SignalType.RESET
 
         # Check for explicit input/output patterns

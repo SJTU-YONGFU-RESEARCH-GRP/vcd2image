@@ -3,9 +3,9 @@
 ## Overview
 
 **Module:** `Unknown`
-**Test Cases:** 100
-**Total Signals:** 8
-**Simulation Time:** Generated on 2025-10-07 16:13:52
+**Test Cases:** 101
+**Total Signals:** 5
+**Simulation Time:** Generated on 2025-10-08 02:22:39
 **Analysis Tool:** VAS SignalPlotter with Golden References
 
 This report provides comprehensive signal analysis for the Verilog module, including timing behavior, signal statistics, and performance metrics derived from intelligent random testbench execution with golden reference categorization.
@@ -31,42 +31,39 @@ This report provides comprehensive signal analysis for the Verilog module, inclu
 
 ## Enhanced Signal Statistics Analysis
 
-### Input Signals (4)
+### Input Signals (2)
 
 | Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |
 |--------|------|-----|-----|------|---------|---------------|-------------|
-| `tb_timer/clock` | Clock | 0.00 | 1.00 | 0.50 | 0.50 | 2 | 50.0% duty cycle |
-| `tb_timer/u_timer/clock` | Clock | 0.00 | 1.00 | 0.50 | 0.50 | 2 | 50.0% duty cycle |
-| `tb_timer/reset` | Reset | 0.00 | 1.00 | 0.10 | 0.30 | 2 | 10.0% duty cycle |
-| `tb_timer/u_timer/reset` | Reset | 0.00 | 1.00 | 0.10 | 0.30 | 2 | 10.0% duty cycle |
+| `tb_timer/clock` | Clock | 0.00 | 1.00 | 0.50 | 0.50 | 2 | 49.5% duty cycle |
+| `tb_timer/reset` | Reset | 0.00 | 1.00 | 0.90 | 0.30 | 2 | 90.1% duty cycle |
 
 ### Output Signals (1)
 
 | Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |
 |--------|------|-----|-----|------|---------|---------------|-------------|
-| `tb_timer/pulse` | Signal | 0.00 | 1.00 | 0.15 | 0.36 | 2 | 15.0% duty cycle |
+| `tb_timer/pulse` | Signal | 0.00 | 0.00 | 0.00 | 0.00 | 1 | 0.0% duty cycle |
 
-### Internal Signals (3)
+### Internal Signals (2)
 
 | Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |
 |--------|------|-----|-----|------|---------|---------------|-------------|
-| `tb_timer/u_timer/count` | Wire | 0.00 | 15.00 | 6.05 | 5.07 | 16 | 16 unique values, range: 15.0 |
+| `tb_timer/u_timer/count` | Wire | 0.00 | 0.00 | 0.00 | 0.00 | 1 | 0.0% duty cycle |
 | `tb_timer/u_timer/count_eq11` | Wire | 0.00 | 0.00 | 0.00 | 0.00 | 1 | 0.0% duty cycle |
-| `tb_timer/u_timer/pulse` | Wire | 0.00 | 1.00 | 0.15 | 0.36 | 2 | 15.0% duty cycle |
 
 ### Signal Activity Summary
-- **Most Active Signal:** `tb_timer/u_timer/count` (16 unique values)
-- **Least Active Signal:** `tb_timer/u_timer/count_eq11` (1 unique values)
-- **Clock Signals:** 2 detected (tb_timer/clock, tb_timer/u_timer/clock)
-.1f
+- **Most Active Signal:** `tb_timer/clock` (2 unique values)
+- **Least Active Signal:** `tb_timer/pulse` (1 unique values)
+- **Clock Signals:** 1 detected (tb_timer/clock)
+- **Reset Signals:** 1 detected, 0.9% active
 
 ---
 
 ## Timing and Performance Analysis
 
 ### Clock Domain Analysis
-- **Clock Signals:** tb_timer/clock, tb_timer/u_timer/clock
-- **Clock Edges:** ~50 rising edges detected in 100 test cases
+- **Clock Signals:** tb_timer/clock
+- **Clock Edges:** ~50 rising edges detected in 101 test cases
 
 ### Signal Transition Analysis
 - **Digital Behavior:** All signals show proper binary/digital behavior
