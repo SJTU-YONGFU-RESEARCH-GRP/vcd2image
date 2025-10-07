@@ -197,6 +197,7 @@ Create a `config.yaml` or use environment variables for persistent settings.
 ```
 vcd2image/
 ├── cli/           # Command-line interface
+│   └── main.py         # CLI entry point and argument parsing
 ├── core/          # Core business logic
 │   ├── categorizer.py  # Intelligent signal categorization
 │   ├── extractor.py    # VCD parsing and WaveJSON generation
@@ -205,9 +206,11 @@ vcd2image/
 │   ├── multi_renderer.py # Multi-figure rendering and auto-plotting
 │   ├── parser.py       # VCD file parsing
 │   ├── renderer.py     # WaveDrom-based image rendering
-│   └── sampler.py      # Signal sampling
+│   ├── sampler.py      # Signal sampling and data reduction
+│   ├── signal_plotter.py # Enhanced matplotlib-based plotting
+│   └── verilog_parser.py # Verilog file parsing and module analysis
 └── utils/         # Utilities and configuration
-    └── config.py       # Configuration management
+    └── config.py       # Configuration management and environment variables
 ```
 
 ## 📚 API Reference
@@ -268,6 +271,40 @@ class SignalCategorizer:
     def get_signal_type(self, signal_path: str) -> SignalType
 ```
 
+### SignalPlotter
+
+Enhanced plotting engine that generates matplotlib-based timing diagrams with advanced categorization and golden reference support.
+
+```python
+class SignalPlotter:
+    def __init__(self, vcd_file: str, verilog_file: str = None)
+    def parse_signals(self) -> bool
+    def categorize_signals(self) -> SignalCategory
+    def plot_signals(self, output_dir: str = "plots", format: str = "png") -> bool
+    def generate_signal_report(self, output_file: str = "signal_analysis_report.md") -> bool
+```
+
+### VerilogParser
+
+Parses Verilog files to extract module information including inputs, outputs, wires, and registers for enhanced signal analysis.
+
+```python
+@dataclass
+class VerilogModule:
+    name: str
+    inputs: Dict[str, Tuple[int, str]]     # signal_name -> (width, description)
+    outputs: Dict[str, Tuple[int, str]]
+    wires: Dict[str, Tuple[int, str]]
+    regs: Dict[str, Tuple[int, str]]
+    parameters: Dict[str, str]
+
+class VerilogParser:
+    def __init__(self, verilog_file: str)
+    def parse(self) -> bool
+    def get_module_info(self) -> VerilogModule | None
+    def print_module_summary(self) -> None
+```
+
 ## 🧪 Development
 
 ### Setup Development Environment
@@ -316,20 +353,175 @@ mypy src/            # Type checking
 
 ### Development Scripts
 
-The `scripts/` directory contains helpful utilities for development:
+The `scripts/` directory contains comprehensive utilities to streamline development, testing, and deployment workflows. All scripts are designed to be idempotent, provide colored output, and include proper error handling.
 
+#### `install.sh` - Environment Setup
+
+**Purpose**: Automated development environment setup and dependency installation.
+
+**Key Features**:
+- Creates and activates Python virtual environment
+- Installs package in development mode with optional dependencies
+- Interactive menu for selecting development tools and rendering dependencies
+- Installation verification and environment checks
+
+**Usage**:
 ```bash
-# Complete development setup
+# Interactive installation (recommended)
 ./scripts/install.sh
 
-# Run comprehensive testing suite
+# Manual activation (if not done automatically)
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+```
+
+**Dependencies Options**:
+- **Development tools**: pytest, ruff, mypy, coverage
+- **Rendering extras**: playwright, pillow for image generation
+- **All optional**: Complete development environment
+
+#### `test.sh` - Comprehensive Testing Suite
+
+**Purpose**: Run complete testing pipeline including code quality checks and unit tests.
+
+**Key Features**:
+- **Code formatting**: `ruff format` - checks code style consistency
+- **Linting**: `ruff check` - identifies code quality issues
+- **Type checking**: `mypy` - static type analysis
+- **Unit testing**: `pytest` with coverage reporting
+- **Timing information**: Performance metrics for each step
+- **Selective testing**: Run specific test types individually
+
+**Usage**:
+```bash
+# Run complete testing suite
 ./scripts/test.sh
 
-# GitHub operations (init, push, releases, etc.)
+# Run specific test categories
+./scripts/test.sh --unit     # Only unit tests with coverage
+./scripts/test.sh --lint     # Only linting checks
+./scripts/test.sh --type     # Only type checking
+./scripts/test.sh --format   # Only code formatting checks
+```
+
+#### `clean.sh` - Project Cleaning Utility
+
+**Purpose**: Clean generated files, build artifacts, and caches while preserving source code.
+
+**Key Features**:
+- **Selective cleaning**: Clean examples, build artifacts, or everything
+- **Dry-run mode**: Preview what will be deleted before execution
+- **Interactive confirmation**: Prompts before destructive operations
+- **Force mode**: Skip confirmations for automated workflows
+- **Colored output**: Clear visual feedback for operations
+
+**Usage**:
+```bash
+# Clean examples directory (generated plots, JSON files)
+./scripts/clean.sh examples
+
+# Clean everything (examples + build artifacts + caches)
+./scripts/clean.sh all
+
+# Preview what would be cleaned (dry run)
+./scripts/clean.sh --dry-run
+./scripts/clean.sh examples --dry-run
+./scripts/clean.sh all --dry-run
+
+# Skip confirmation prompts
+./scripts/clean.sh --force
+./scripts/clean.sh examples --force
+./scripts/clean.sh all --force
+
+# Show help
+./scripts/clean.sh --help
+```
+
+**What Gets Cleaned**:
+
+**Examples directory** (`examples`):
+- Generated JSON files (*.json) - WaveJSON data
+- Generated images (*.png, *.svg, *.html) - Plots and diagrams
+- Generated directories (*single_figure/, *categorized_figures/, etc.)
+
+**Full clean** (`all`):
+- Everything in examples directory
+- Python cache files (__pycache__/, *.pyc)
+- Build artifacts (build/, dist/, *.egg-info/)
+- Coverage reports (htmlcov/, .coverage)
+- Linter caches (.ruff_cache/, .mypy_cache/)
+
+#### `github_ops.sh` - GitHub Operations
+
+**Purpose**: Streamlined GitHub repository management and release operations.
+
+**Key Features**:
+- **Repository initialization**: Set up git with proper .gitignore
+- **Remote management**: Configure GitHub remotes
+- **Push operations**: Safe and force push capabilities
+- **Release management**: Automated version bumping and tagging
+- **PR workflow**: Create feature branches for pull requests
+- **Submodule operations**: Complete submodule lifecycle management
+
+**Usage**:
+```bash
+# Repository setup
+./scripts/github_ops.sh init                    # Initialize git repository
+./scripts/github_ops.sh remote                 # Set up default remote
+./scripts/github_ops.sh remote <url>           # Set custom remote
+
+# Push operations
+./scripts/github_ops.sh push                   # Push current branch
+./scripts/github_ops.sh push main force        # Force push to main
+
+# Release management
+./scripts/github_ops.sh release 1.0.0 "Release description"
+./scripts/github_ops.sh pr-branch feature/new-feature
+
+# Submodule operations
+./scripts/github_ops.sh submodule add <url> <path>
+./scripts/github_ops.sh submodule update
+./scripts/github_ops.sh submodule status
+./scripts/github_ops.sh submodule init
+./scripts/github_ops.sh submodule sync
+./scripts/github_ops.sh submodule foreach "git pull origin main"
+
+# Repository status
+./scripts/github_ops.sh status
 ./scripts/github_ops.sh help
 ```
 
-See [scripts/SCRIPTS.md](scripts/SCRIPTS.md) for detailed documentation of available scripts.
+### Development Workflow
+
+A complete development workflow using the scripts:
+
+```bash
+# 1. Initial setup
+./scripts/install.sh                    # Set up environment
+source venv/bin/activate               # Activate virtual environment
+
+# 2. Repository setup
+./scripts/github_ops.sh init           # Initialize git
+./scripts/github_ops.sh remote         # Set up remote
+./scripts/github_ops.sh submodule update  # Initialize submodules
+
+# 3. Development cycle
+# Make code changes...
+
+# 4. Quality assurance
+./scripts/test.sh                      # Run full test suite
+
+# 5. Clean before commit (optional)
+./scripts/clean.sh examples            # Clean generated files
+
+# 6. Push changes
+./scripts/github_ops.sh push           # Push to remote
+
+# 7. Release (when ready)
+./scripts/github_ops.sh release 1.0.0 "Major release"
+```
+
+For detailed documentation of all scripts, see [scripts/SCRIPTS.md](scripts/SCRIPTS.md).
 
 ## 🤝 Contributing
 
