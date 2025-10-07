@@ -7,7 +7,7 @@
 [![Type checking: mypy](https://img.shields.io/badge/type%20checking-mypy-blue.svg)](https://mypy-lang.org/)
 [![CI](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/ci.yml?branch=main&label=CI)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
 [![Code Quality](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/code-quality.yml?branch=main&label=quality)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
-[![Coverage](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image/branch/main/graph/badge.svg)](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image)
+[![Coverage Status](https://img.shields.io/badge/coverage-report-blue.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
 [![GitHub release](https://img.shields.io/github/release/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/releases)
 [![GitHub stars](https://img.shields.io/github/stars/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/issues)
@@ -435,7 +435,24 @@ The CI pipeline runs automatically on:
 
 #### Coverage Reporting
 
-Test coverage is automatically uploaded to [Codecov](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image) with detailed reports and PR comments.
+Test coverage is automatically uploaded to [Codecov](https://codecov.io) with detailed reports and PR comments.
+
+**Setup Codecov (Optional):**
+1. Visit [codecov.io](https://codecov.io) and sign in with GitHub
+2. Add your repository (it should appear automatically after the first CI run)
+3. The coverage badge will display once Codecov processes your first coverage report
+
+**Local Coverage Reports:**
+Coverage reports are also saved as CI artifacts and can be generated locally:
+
+```bash
+# Generate comprehensive coverage reports
+./scripts/generate-coverage.sh
+
+# View HTML report
+python -m http.server 8000 -d htmlcov/
+# Open http://localhost:8000 in your browser
+```
 
 #### Automated Dependency Updates
 

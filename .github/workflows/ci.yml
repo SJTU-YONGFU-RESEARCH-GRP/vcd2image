@@ -62,16 +62,24 @@ jobs:
       run: mypy src/
 
     - name: Unit tests with coverage
-      run: pytest --cov=vcd2image --cov-report=term-missing --cov-report=xml
+      run: pytest --cov=vcd2image --cov-report=term-missing --cov-report=xml --cov-report=html
 
-    - name: Upload coverage to Codecov
+    - name: Upload coverage reports to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
         fail_ci_if_error: false
+        verbose: true
+
+    - name: Upload coverage artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
+        path: |
+          htmlcov/
+          coverage.xml
+        retention-days: 30
 
     - name: Test examples (Ubuntu only)
       if: runner.os == 'Linux' && matrix.python-version == '3.12'

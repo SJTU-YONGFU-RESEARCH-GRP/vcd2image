@@ -54,6 +54,39 @@ This directory contains utility scripts to help with development, testing, and d
 - On Windows, run with: `bash scripts/setup-testing.sh`
 - Requires Python 3.10+ in PATH as `python3`
 
+### `generate-coverage.sh`
+**Purpose**: Generate detailed local coverage reports for development and debugging.
+
+**Features**:
+- Runs pytest with comprehensive coverage analysis
+- Generates multiple report formats (terminal, HTML, XML)
+- Shows missing line coverage details
+- Provides interactive HTML reports
+- Cleans up previous coverage data before generating new reports
+
+**Usage**:
+```bash
+./scripts/generate-coverage.sh
+```
+
+**What it generates**:
+- **Terminal report**: Immediate coverage summary in console
+- **HTML report**: Interactive web-based coverage report (`htmlcov/index.html`)
+- **XML report**: Machine-readable format (`coverage.xml`)
+- **Coverage data**: Python coverage database (`.coverage`)
+
+**Requirements**:
+- Virtual environment activated
+- pytest-cov installed (`pip install pytest-cov`)
+- All test dependencies available
+
+**Viewing HTML reports**:
+```bash
+# Serve HTML reports locally
+python -m http.server 8000 -d htmlcov/
+# Then open http://localhost:8000 in your browser
+```
+
 ### `test.sh`
 **Purpose**: Run comprehensive testing suite including code quality checks.
 
