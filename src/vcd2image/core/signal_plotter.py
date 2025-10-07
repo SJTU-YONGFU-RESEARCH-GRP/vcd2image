@@ -109,10 +109,9 @@ class SignalPlotter:
 
     def _extract_actual_waveform_data(self, signal_dict: dict[str, "SignalDef"]) -> None:
         """Extract actual waveform data from JSON files and create DataFrame for plotting."""
-        import pandas as pd
         import json
-        import tempfile
         import os
+        import tempfile
 
         # Filter out signals with duplicate SIDs to avoid conflicts
         sid_to_paths = {}
@@ -124,7 +123,7 @@ class SignalPlotter:
 
         # Only include signals with unique SIDs
         valid_signal_paths = []
-        for sid, paths in sid_to_paths.items():
+        for _sid, paths in sid_to_paths.items():
             if len(paths) == 1:
                 valid_signal_paths.append(paths[0])
             else:
@@ -176,7 +175,7 @@ class SignalPlotter:
                 return
 
             # Parse the JSON data
-            with open(temp_json_path, 'r', encoding='utf-8') as f:
+            with open(temp_json_path, encoding='utf-8') as f:
                 wavejson = json.load(f)
 
             # Convert WaveJSON to DataFrame format for plotting
@@ -492,7 +491,7 @@ class SignalPlotter:
             sid_to_paths[sid].append(path)
 
         filtered_paths = []
-        for sid, paths in sid_to_paths.items():
+        for _sid, paths in sid_to_paths.items():
             if len(paths) == 1:
                 filtered_paths.append(paths[0])
             else:
@@ -738,7 +737,7 @@ class SignalPlotter:
                     # Also generate CSV for this category
                     try:
                         import json
-                        with open(json_file, 'r', encoding='utf-8') as f:
+                        with open(json_file, encoding='utf-8') as f:
                             category_json = json.load(f)
 
                         # Convert JSON to DataFrame and save as CSV

@@ -14,7 +14,6 @@ from pathlib import Path
 
 from vcd2image.core.extractor import WaveExtractor
 from vcd2image.core.multi_renderer import MultiFigureRenderer
-from vcd2image.core.renderer import WaveRenderer
 
 
 def example1():

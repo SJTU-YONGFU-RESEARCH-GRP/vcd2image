@@ -72,11 +72,13 @@ class TestWaveJSONGenerator:
         path_list = ["clock", "data"]
         generator = WaveJSONGenerator(path_list, sample_signals, wave_chunk=2)
 
-        header = generator._create_header()
+        # Provide sample clock data
+        clock_samples = ["1", "0", "1", "0"]
+        header = generator._create_header(clock_samples)
 
         assert '"head": {"tock":1}' in header
         assert '"name": "clock"' in header
-        assert '"wave": "p."' in header  # clock pattern for chunk size 2
+        assert '"wave": "1010"' in header  # actual clock samples
 
     def test_create_wave_single_bit(self, sample_signals) -> None:
         """Test wave creation for single-bit signals."""

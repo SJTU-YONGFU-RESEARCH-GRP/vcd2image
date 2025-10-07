@@ -3,13 +3,11 @@
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-import pytest
-
 from vcd2image.core.categorizer import SignalCategorizer
 from vcd2image.core.models import SignalCategory, SignalDef, SignalType
 
 if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
+    pass
 
 
 class TestSignalCategorizer:

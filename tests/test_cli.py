@@ -179,7 +179,6 @@ class TestCLIMain:
             auto_plot=False,
             auto_dir=None,
             auto_formats=None,
-            auto_plot=False,
             plot_dir="/some/dir",
             plot_formats=None,
         )
@@ -201,7 +200,6 @@ class TestCLIMain:
             auto_plot=False,
             auto_dir=None,
             auto_formats=None,
-            auto_plot=False,
             plot_dir=None,
             plot_formats=["png"],
         )
@@ -220,10 +218,9 @@ class TestCLIMain:
             image=None,
             signals=["clock"],
             list_signals=False,
-            auto_plot=False,
+            auto_plot=True,
             auto_dir=None,
             auto_formats=None,
-            auto_plot=True,
             plot_dir=None,
             plot_formats=None,
         )
@@ -242,10 +239,9 @@ class TestCLIMain:
             image=None,
             signals=None,
             list_signals=False,
-            auto_plot=False,
+            auto_plot=True,
             auto_dir=None,
             auto_formats=None,
-            auto_plot=True,
             plot_dir=None,
             plot_formats=None,
         )

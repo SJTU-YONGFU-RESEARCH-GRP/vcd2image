@@ -39,10 +39,8 @@ class SignalSampler:
 
         # Initialize value and sample dictionaries
         # Note: dict.fromkeys() with mutable defaults shares the same object, so create individually
-        value_dict = {sid: "x" for sid in [clock_sid] + signal_sids}
+        value_dict = dict.fromkeys([clock_sid] + signal_sids, "x")
         sample_dict = {sid: [] for sid in [clock_sid] + signal_sids}
-
-        clock_prev = value_dict[clock_sid]  # initial clock value
 
         logger.debug(f"Sampling signals with clock_sid={clock_sid}, signal_sids={signal_sids}")
         data_count = 0

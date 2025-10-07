@@ -1,13 +1,13 @@
 # VCD2Image
 
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-orange.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Python Version](https://img.shields.io/badge/python-3.10+-3776AB.svg)](https://www.python.org/downloads/)
 [![PyPI version](https://badge.fury.io/py/vcd2image.svg)](https://pypi.org/project/vcd2image/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type checking: mypy](https://img.shields.io/badge/type%20checking-mypy-blue.svg)](https://mypy-lang.org/)
+[![Type checking: mypy](https://img.shields.io/badge/type%20checking-mypy-2B5B84.svg)](https://mypy-lang.org/)
 [![CI](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/ci.yml?branch=main&label=CI)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
 [![Code Quality](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/code-quality.yml?branch=main&label=quality)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
-[![Coverage Status](https://img.shields.io/badge/coverage-report-blue.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
+[![Coverage Status](https://img.shields.io/badge/coverage-report-green.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
 [![GitHub release](https://img.shields.io/github/release/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/releases)
 [![GitHub stars](https://img.shields.io/github/stars/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/issues)
@@ -656,7 +656,7 @@ This project is licensed under the CC BY 4.0 License - see the [LICENSE](LICENSE
 - 📖 [Documentation](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image#readme)
 - 🐛 [Issue Tracker](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/issues)
 - 💬 [Discussions](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/discussions)
-- 📧 [Email Support](mailto:)
+- 📧 [Email Support](mailto:yongfu.li@sjtu.edu.cn)
 
 ---
 
