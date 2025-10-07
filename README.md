@@ -5,7 +5,9 @@
 [![PyPI version](https://badge.fury.io/py/vcd2image.svg)](https://pypi.org/project/vcd2image/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checking: mypy](https://img.shields.io/badge/type%20checking-mypy-blue.svg)](https://mypy-lang.org/)
-[![Test Status](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/ci.yml?branch=main&label=tests)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/ci.yml?branch=main&label=CI)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
+[![Code Quality](https://img.shields.io/github/actions/workflow/status/SJTU-YONGFU-RESEARCH-GRP/vcd2image/code-quality.yml?branch=main&label=quality)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/actions)
+[![Coverage](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image/branch/main/graph/badge.svg)](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image)
 [![GitHub release](https://img.shields.io/github/release/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/releases)
 [![GitHub stars](https://img.shields.io/github/stars/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/SJTU-YONGFU-RESEARCH-GRP/vcd2image.svg)](https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image/issues)
@@ -14,6 +16,50 @@
 **Convert VCD (Value Change Dump) files to beautiful timing diagram images**
 
 VCD2Image is a modern Python tool that converts VCD (Value Change Dump) files from digital circuit simulations into professional timing diagram images. It uses WaveDrom, the industry-standard JavaScript library for rendering digital timing diagrams, to generate publication-quality SVG and PNG images.
+
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+  - [From PyPI (Recommended)](#from-pypi-recommended)
+  - [From Source](#from-source)
+  - [With Rendering Dependencies](#with-rendering-dependencies)
+- [🚀 Quick Start](#-quick-start)
+  - [Command Line](#command-line)
+  - [Python API](#python-api)
+- [📖 Usage Examples](#-usage-examples)
+  - [Basic Signal Extraction](#basic-signal-extraction)
+  - [Advanced Configuration](#advanced-configuration)
+- [🤖 Auto Plotting](#-auto-plotting)
+  - [Single Plot Mode](#single-plot-mode)
+  - [Multi-Figure Mode](#multi-figure-mode)
+  - [Signal Categorization](#signal-categorization)
+- [🎨 Output Formats](#-output-formats)
+- [🔧 Configuration](#-configuration)
+  - [Environment Variables](#environment-variables)
+  - [Configuration File](#configuration-file)
+- [🏗️ Architecture](#️-architecture)
+- [📚 API Reference](#-api-reference)
+  - [WaveExtractor](#waveextractor)
+  - [WaveRenderer](#waverenderer)
+  - [MultiFigureRenderer](#multifigurereenderer)
+  - [SignalCategorizer](#signalcategorizer)
+  - [SignalPlotter](#signalplotter)
+  - [VerilogParser](#verilogparser)
+- [🧪 Development](#-development)
+  - [Setup Development Environment](#setup-development-environment)
+  - [Run Tests](#run-tests)
+  - [Code Quality](#code-quality)
+  - [Development Scripts](#development-scripts)
+    - [`install.sh` - Environment Setup](#installsh---environment-setup)
+    - [`test.sh` - Comprehensive Testing Suite](#testsh---comprehensive-testing-suite)
+    - [`clean.sh` - Project Cleaning Utility](#cleansh---project-cleaning-utility)
+    - [`github_ops.sh` - GitHub Operations](#github_opssh---github-operations)
+  - [Development Workflow](#development-workflow)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🙏 Acknowledgments](#-acknowledgments)
+- [📞 Support](#-support)
 
 ## ✨ Features
 
@@ -309,18 +355,32 @@ class VerilogParser:
 
 ### Setup Development Environment
 
+#### Quick Start (Recommended)
+
 ```bash
 # Clone repository
 git clone https://github.com/SJTU-YONGFU-RESEARCH-GRP/vcd2image.git
 cd vcd2image
 
-# Run installation script (recommended)
-./scripts/install.sh
+# One-command setup for testing (includes environment + dependencies)
+./scripts/setup-testing.sh
 
-# Or manual setup:
-# python -m venv venv
-# source venv/bin/activate  # On Windows: venv\Scripts\activate
-# pip install -e ".[dev,rendering]"
+# Or use the comprehensive installation script
+./scripts/install.sh
+```
+
+#### Manual Setup
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install with development dependencies
+pip install -e ".[dev,rendering]"
+
+# Verify installation
+python -c "from vcd2image.core.models import SignalDef; print('✓ Setup complete')"
 ```
 
 ### Run Tests
@@ -350,6 +410,38 @@ ruff check .          # Linting
 ruff format .         # Code formatting
 mypy src/            # Type checking
 ```
+
+### Continuous Integration & Deployment
+
+VCD2Image uses GitHub Actions for automated testing and deployment across multiple platforms and Python versions.
+
+#### CI Pipeline
+
+The CI pipeline runs automatically on:
+- **Push** to `main` and `develop` branches
+- **Pull requests** targeting `main` and `develop` branches
+- **Manual trigger** via GitHub Actions UI
+
+**Test Matrix:**
+- **OS:** Ubuntu, Windows, macOS
+- **Python:** 3.10, 3.11, 3.12, 3.13
+- **Checks:** Code formatting, linting, type checking, unit tests, examples testing
+
+#### Workflows
+
+- **`ci.yml`** - Main CI pipeline with cross-platform testing and coverage reporting
+- **`code-quality.yml`** - Fast quality checks for pull requests (formatting, linting, types)
+- **`nightly.yml`** - Daily comprehensive testing with artifact collection
+
+#### Coverage Reporting
+
+Test coverage is automatically uploaded to [Codecov](https://codecov.io/gh/SJTU-YONGFU-RESEARCH-GRP/vcd2image) with detailed reports and PR comments.
+
+#### Automated Dependency Updates
+
+[Dependabot](https://github.com/dependabot) automatically creates pull requests for:
+- Python dependency updates (weekly)
+- GitHub Actions updates (weekly)
 
 ### Development Scripts
 

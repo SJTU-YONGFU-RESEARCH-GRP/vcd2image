@@ -1,0 +1,59 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ubuntu-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ubuntu-pip-
+
+    - name: Install quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff mypy
+
+    - name: Code formatting check
+      run: ruff format --check --diff .
+
+    - name: Linting
+      run: ruff check .
+
+    - name: Type checking
+      run: mypy src/
+
+    - name: Security audit
+      run: |
+        pip install safety
+        safety check --full-report
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check README links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        use-verbose-mode: 'yes'
+        config-file: '.github/workflows/link-check-config.json'

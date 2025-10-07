@@ -23,6 +23,37 @@ This directory contains utility scripts to help with development, testing, and d
 - Rendering dependencies (playwright, pillow)
 - All optional dependencies
 
+### `setup-testing.sh`
+**Purpose**: Quick setup script for testing environment and tool verification.
+
+**Features**:
+- Creates virtual environment if it doesn't exist
+- Activates virtual environment
+- Installs all development and rendering dependencies
+- Verifies tool installations (pytest, ruff, mypy)
+- Runs basic import verification tests
+- Provides next steps and usage instructions
+
+**Usage**:
+```bash
+./scripts/setup-testing.sh
+```
+
+**What it does**:
+1. Checks Python version compatibility
+2. Creates virtual environment (`venv/`)
+3. Activates virtual environment
+4. Upgrades pip
+5. Installs package with `[dev,rendering]` extras
+6. Verifies tool availability
+7. Runs basic import verification
+8. Displays next steps
+
+**Platform notes**:
+- Designed for Unix-like systems (Linux, macOS)
+- On Windows, run with: `bash scripts/setup-testing.sh`
+- Requires Python 3.10+ in PATH as `python3`
+
 ### `test.sh`
 **Purpose**: Run comprehensive testing suite including code quality checks.
 

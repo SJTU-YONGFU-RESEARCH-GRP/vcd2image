@@ -1,0 +1,52 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev shared-mime-info
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev,rendering]"
+
+    - name: Run full test suite
+      run: |
+        ./scripts/test.sh
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## Nightly Test Results" >> nightly-report.md
+        echo "- Date: $(date)" >> nightly-report.md
+        echo "- Commit: ${{ github.sha }}" >> nightly-report.md
+        echo "- Status: $?" >> nightly-report.md
+        cat nightly-report.md
+
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-test-results
+        path: |
+          htmlcov/
+          nightly-report.md
+        retention-days: 30
