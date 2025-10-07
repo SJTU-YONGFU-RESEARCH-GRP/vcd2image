@@ -264,7 +264,7 @@ if [ "$RUN_ALL" = true ] || [ "$RUN_EXAMPLES" = true ]; then
         fi
 
         # Check for file name conflicts with existing files
-        EXISTING_FILES="timer.json timer_lazy.json example.py timer.v timer.vcd"
+        EXISTING_FILES="timer.json timer_auto.json example.py timer.v timer.vcd"
         CONFLICTS_FOUND=""
 
         for gen_file in $GENERATED_FILES; do

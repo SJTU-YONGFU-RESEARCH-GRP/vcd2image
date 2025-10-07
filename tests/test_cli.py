@@ -40,10 +40,9 @@ class TestCLIMain:
             image=None,
             signals=["clock", "data"],
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
-            lazy_formats=None,
             auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
             plot_dir=None,
             plot_formats=None,
         )
@@ -62,10 +61,9 @@ class TestCLIMain:
             image="output.png",
             signals=None,
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
-            lazy_formats=None,
             auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
             plot_dir=None,
             plot_formats=None,
         )
@@ -81,9 +79,9 @@ class TestCLIMain:
             image=None,
             signals=["clock"],
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
-            lazy_formats=None,
+            auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
         )
 
         with pytest.raises(ValueError, match="Input file does not exist"):
@@ -100,9 +98,8 @@ class TestCLIMain:
             image=None,
             signals=None,
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
             auto_plot=False,
+            auto_dir=None,
             plot_dir=None,
             plot_formats=None,
         )
@@ -121,8 +118,8 @@ class TestCLIMain:
             image="output.png",
             signals=["clock"],
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
+            auto_plot=False,
+            auto_dir=None,
         )
 
         with pytest.raises(ValueError, match="Signal paths cannot be specified for JSON input"):
@@ -139,9 +136,8 @@ class TestCLIMain:
             image=None,
             signals=None,
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
             auto_plot=False,
+            auto_dir=None,
             plot_dir=None,
             plot_formats=None,
         )
@@ -160,8 +156,8 @@ class TestCLIMain:
             image=None,
             signals=["clock"],
             list_signals=False,
-            lazy_plot=False,
-            lazy_dir=None,
+            auto_plot=False,
+            auto_dir=None,
             auto_plot=False,
             plot_dir=None,
             plot_formats=None,
@@ -169,6 +165,122 @@ class TestCLIMain:
 
         with pytest.raises(ValueError, match="Input file must be .vcd or .json"):
             validate_args(args)
+
+    def test_validate_args_plot_dir_without_auto_plot(self, tmp_path) -> None:
+        """Test validating plot_dir without auto_plot flag."""
+        json_file = tmp_path / "test.json"
+        json_file.write_text("{}")
+
+        args = Namespace(
+            input_file=str(json_file),
+            output=None,
+            image="output.png",
+            signals=None,
+            list_signals=False,
+            auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
+            auto_plot=False,
+            plot_dir="/some/dir",
+            plot_formats=None,
+        )
+
+        with pytest.raises(ValueError, match="Auto plotting options are not valid for JSON input"):
+            validate_args(args)
+
+    def test_validate_args_plot_formats_without_auto_plot(self, tmp_path) -> None:
+        """Test validating plot_formats without auto_plot flag."""
+        json_file = tmp_path / "test.json"
+        json_file.write_text("{}")
+
+        args = Namespace(
+            input_file=str(json_file),
+            output=None,
+            image="output.png",
+            signals=None,
+            list_signals=False,
+            auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
+            auto_plot=False,
+            plot_dir=None,
+            plot_formats=["png"],
+        )
+
+        with pytest.raises(ValueError, match="--plot-formats requires --auto-plot or --plot-dir"):
+            validate_args(args)
+
+    def test_validate_args_auto_plot_with_signals(self, tmp_path) -> None:
+        """Test validating auto_plot with signals specified."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+
+        args = Namespace(
+            input_file=str(vcd_file),
+            output=None,
+            image=None,
+            signals=["clock"],
+            list_signals=False,
+            auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
+            auto_plot=True,
+            plot_dir=None,
+            plot_formats=None,
+        )
+
+        with pytest.raises(ValueError, match="Cannot specify signals with auto plotting"):
+            validate_args(args)
+
+    def test_validate_args_auto_plot_with_output(self, tmp_path) -> None:
+        """Test validating auto_plot with output JSON specified."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+
+        args = Namespace(
+            input_file=str(vcd_file),
+            output="output.json",
+            image=None,
+            signals=None,
+            list_signals=False,
+            auto_plot=False,
+            auto_dir=None,
+            auto_formats=None,
+            auto_plot=True,
+            plot_dir=None,
+            plot_formats=None,
+        )
+
+        with pytest.raises(ValueError, match="Cannot specify output JSON with auto plotting"):
+            validate_args(args)
+
+    @patch("vcd2image.cli.main.MultiFigureRenderer")
+    def test_main_auto_plot_without_image(self, mock_multi_renderer, tmp_path) -> None:
+        """Test auto plotting without image output specified."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+
+        mock_renderer_instance = MagicMock()
+        mock_multi_renderer.return_value = mock_renderer_instance
+        mock_renderer_instance.render_auto_plot.return_value = 0
+
+        with patch("vcd2image.cli.main.create_parser") as mock_create_parser:
+            mock_parser = MagicMock()
+            mock_create_parser.return_value = mock_parser
+            mock_args = Namespace()
+            mock_args.input_file = str(vcd_file)
+            mock_args.output = None
+            mock_args.image = None  # No image specified
+            mock_args.signals = None
+            mock_args.verbose = False
+            mock_args.auto_plot = True
+            mock_args.plot_dir = None
+            mock_args.plot_formats = None
+            mock_parser.parse_args.return_value = mock_args
+
+            result = main()
+
+            assert result == 1  # Should fail due to missing image
 
     @patch("vcd2image.cli.main.WaveExtractor")
     def test_main_vcd_to_json_success(self, mock_extractor, tmp_path) -> None:
@@ -295,6 +407,107 @@ class TestCLIMain:
             mock_extractor.assert_called_once()
             mock_renderer.assert_called_once()
 
+    @patch("vcd2image.cli.main.MultiFigureRenderer")
+    def test_main_auto_plot_single_image(self, mock_multi_renderer, tmp_path) -> None:
+        """Test auto plotting with single image output."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+        image_file = tmp_path / "output.png"
+
+        mock_renderer_instance = MagicMock()
+        mock_multi_renderer.return_value = mock_renderer_instance
+        mock_renderer_instance.render_auto_plot.return_value = 0
+
+        with patch("vcd2image.cli.main.create_parser") as mock_create_parser:
+            mock_parser = MagicMock()
+            mock_create_parser.return_value = mock_parser
+            mock_args = Namespace()
+            mock_args.input_file = str(vcd_file)
+            mock_args.output = None
+            mock_args.image = str(image_file)
+            mock_args.signals = None
+            mock_args.verbose = False
+            mock_args.auto_plot = True
+            mock_args.plot_dir = None
+            mock_args.plot_formats = None
+            mock_parser.parse_args.return_value = mock_args
+
+            result = main()
+
+            assert result == 0
+            mock_multi_renderer.assert_called_once()
+            mock_renderer_instance.render_auto_plot.assert_called_once_with(
+                vcd_file=str(vcd_file), output_file=str(image_file)
+            )
+
+    @patch("vcd2image.cli.main.MultiFigureRenderer")
+    def test_main_auto_plot_multiple_formats(self, mock_multi_renderer, tmp_path) -> None:
+        """Test auto plotting with multiple output formats."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+        plot_dir = tmp_path / "plots"
+        plot_dir.mkdir()
+
+        mock_renderer_instance = MagicMock()
+        mock_multi_renderer.return_value = mock_renderer_instance
+        mock_renderer_instance.render_categorized_figures.return_value = 0
+
+        with patch("vcd2image.cli.main.create_parser") as mock_create_parser:
+            mock_parser = MagicMock()
+            mock_create_parser.return_value = mock_parser
+            mock_args = Namespace()
+            mock_args.input_file = str(vcd_file)
+            mock_args.output = None
+            mock_args.image = None
+            mock_args.signals = None
+            mock_args.verbose = False
+            mock_args.auto_plot = True
+            mock_args.plot_dir = str(plot_dir)
+            mock_args.plot_formats = ["png", "svg"]
+            mock_parser.parse_args.return_value = mock_args
+
+            result = main()
+
+            assert result == 0
+            mock_multi_renderer.assert_called_once()
+            mock_renderer_instance.render_categorized_figures.assert_called_once_with(
+                vcd_file=str(vcd_file), output_dir=str(plot_dir), formats=["png", "svg"]
+            )
+
+    @patch("vcd2image.cli.main.MultiFigureRenderer")
+    def test_main_auto_plot_default_formats(self, mock_multi_renderer, tmp_path) -> None:
+        """Test auto plotting with default formats."""
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text("$enddefinitions $end")
+        plot_dir = tmp_path / "plots"
+        plot_dir.mkdir()
+
+        mock_renderer_instance = MagicMock()
+        mock_multi_renderer.return_value = mock_renderer_instance
+        mock_renderer_instance.render_categorized_figures.return_value = 0
+
+        with patch("vcd2image.cli.main.create_parser") as mock_create_parser:
+            mock_parser = MagicMock()
+            mock_create_parser.return_value = mock_parser
+            mock_args = Namespace()
+            mock_args.input_file = str(vcd_file)
+            mock_args.output = None
+            mock_args.image = None
+            mock_args.signals = None
+            mock_args.verbose = False
+            mock_args.auto_plot = True
+            mock_args.plot_dir = str(plot_dir)
+            mock_args.plot_formats = None  # Should default to ["png"]
+            mock_parser.parse_args.return_value = mock_args
+
+            result = main()
+
+            assert result == 0
+            mock_multi_renderer.assert_called_once()
+            mock_renderer_instance.render_categorized_figures.assert_called_once_with(
+                vcd_file=str(vcd_file), output_dir=str(plot_dir), formats=["png"]
+            )
+
     def test_main_with_exception(self) -> None:
         """Test main function handles exceptions properly."""
         with patch("vcd2image.cli.main.create_parser") as mock_create_parser:
@@ -304,3 +517,24 @@ class TestCLIMain:
             result = main()
 
             assert result == 1
+
+    def test_create_parser(self) -> None:
+        """Test argument parser creation."""
+        from vcd2image.cli.main import create_parser
+
+        parser = create_parser()
+
+        # Test that parser has expected arguments
+        assert parser is not None
+
+        # Parse args with required input_file to test basic functionality
+        args = parser.parse_args(["test.vcd"])
+        assert hasattr(args, 'input_file')
+        assert hasattr(args, 'output')
+        assert hasattr(args, 'image')
+        assert hasattr(args, 'signals')
+        assert hasattr(args, 'verbose')
+        assert hasattr(args, 'auto_plot')
+        assert hasattr(args, 'plot_dir')
+        assert hasattr(args, 'plot_formats')
+        assert args.input_file == "test.vcd"

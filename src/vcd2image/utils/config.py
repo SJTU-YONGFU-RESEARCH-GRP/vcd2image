@@ -14,7 +14,7 @@ class Config:
     start_time: int = 0
     end_time: int = 0
 
-    # WaveDrom rendering settings
+    # Rendering settings
     skin: str = "default"
     width: int | None = None
     height: int | None = None

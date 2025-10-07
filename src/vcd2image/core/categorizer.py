@@ -65,19 +65,25 @@ class SignalCategorizer:
             signal_def.signal_type = signal_type
 
             if signal_type == SignalType.CLOCK:
-                category.clock_signals.append(path)
-            elif signal_type == SignalType.INPUT_PORT:
-                category.input_ports.append(path)
-            elif signal_type == SignalType.OUTPUT_PORT:
-                category.output_ports.append(path)
-            else:  # SignalType.INTERNAL_SIGNAL
-                category.internal_signals.append(path)
+                category.clocks.append(path)
+            elif signal_type == SignalType.INPUT:
+                category.inputs.append(path)
+            elif signal_type == SignalType.OUTPUT:
+                category.outputs.append(path)
+            elif signal_type == SignalType.RESET:
+                category.resets.append(path)
+            elif signal_type == SignalType.INTERNAL:
+                category.internals.append(path)
+            else:  # SignalType.UNKNOWN
+                category.unknowns.append(path)
 
         # Sort signals for consistent ordering
-        category.clock_signals.sort()
-        category.input_ports.sort()
-        category.output_ports.sort()
-        category.internal_signals.sort()
+        category.clocks.sort()
+        category.inputs.sort()
+        category.outputs.sort()
+        category.resets.sort()
+        category.internals.sort()
+        category.unknowns.sort()
 
         logger.info(f"Categorized signals: {category}")
         return category
@@ -99,44 +105,45 @@ class SignalCategorizer:
         if self._matches_any_pattern(name, self.clock_patterns):
             return SignalType.CLOCK
 
-        # Check for reset signals (often treated as inputs)
+        # Check for reset signals
         if self._matches_any_pattern(name, self.reset_patterns):
-            return SignalType.INPUT_PORT
+            return SignalType.RESET
 
         # Check for explicit input/output patterns
         if self._matches_any_pattern(name, self.input_patterns):
-            return SignalType.INPUT_PORT
+            return SignalType.INPUT
         if self._matches_any_pattern(name, self.output_patterns):
-            return SignalType.OUTPUT_PORT
+            return SignalType.OUTPUT
 
         # Analyze hierarchy depth and prefixes
         path_parts = path.split("/")
+
+        # Check for internal module prefixes (but not for top-level testbench signals)
+        if len(path_parts) > 2:  # Only check internal prefixes for deeply nested signals
+            if any(any(part.startswith(prefix) for part in path_parts[1:]) for prefix in self.internal_prefixes):
+                return SignalType.INTERNAL
 
         # Testbench-level signals (tb_* or top-level) - analyze based on typical usage
         if len(path_parts) <= 2 or path_parts[0].startswith("tb_"):
             # Common testbench outputs: pulse, done, ready, valid, etc.
             output_indicators = ["pulse", "done", "ready", "valid", "out", "result"]
             if any(indicator in name for indicator in output_indicators):
-                return SignalType.OUTPUT_PORT
+                return SignalType.OUTPUT
 
             # Single-bit signals at testbench level are often inputs (controls)
             if signal_def.length == 1:
-                return SignalType.INPUT_PORT
+                return SignalType.INPUT
             else:
                 # Multi-bit signals at testbench level are often outputs (results)
-                return SignalType.OUTPUT_PORT
-
-        # Check for internal module prefixes
-        if any(path_lower.startswith(prefix) for prefix in self.internal_prefixes):
-            return SignalType.INTERNAL_SIGNAL
+                return SignalType.OUTPUT
 
         # Signals with multiple hierarchy levels in modules are likely internal
         if len(path_parts) > 2:
-            return SignalType.INTERNAL_SIGNAL
+            return SignalType.INTERNAL
 
         # Default classification based on signal width
         # Single-bit signals are often inputs, multi-bit are often outputs
-        return SignalType.INPUT_PORT if signal_def.length == 1 else SignalType.OUTPUT_PORT
+        return SignalType.INPUT if signal_def.length == 1 else SignalType.OUTPUT
 
     def _matches_any_pattern(self, text: str, patterns: list[re.Pattern]) -> bool:
         """Check if text matches any of the given regex patterns.
@@ -161,18 +168,18 @@ class SignalCategorizer:
         Returns:
             Path to suggested clock signal, or None if no suitable clock found.
         """
-        if not category.clock_signals:
-            # Look for clock-like signals in input ports
-            for path in category.input_ports:
+        if not category.clocks:
+            # Look for clock-like signals in inputs
+            for path in category.inputs:
                 signal_name = path.split("/")[-1].lower()
                 if self._matches_any_pattern(signal_name, self.clock_patterns):
                     return path
             return None
 
         # Prefer internal clock signals (longer paths, deeper in hierarchy)
-        internal_clocks = [path for path in category.clock_signals if len(path.split("/")) > 2]
+        internal_clocks = [path for path in category.clocks if len(path.split("/")) > 2]
         if internal_clocks:
             return internal_clocks[0]
 
         # Otherwise return the first clock signal
-        return category.clock_signals[0]
+        return category.clocks[0]

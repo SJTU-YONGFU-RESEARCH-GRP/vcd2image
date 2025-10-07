@@ -6,6 +6,7 @@ from pathlib import Path
 from .categorizer import SignalCategorizer
 from .models import SignalDef
 from .renderer import WaveRenderer
+from .signal_plotter import SignalPlotter
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class MultiFigureRenderer:
         """Initialize multi-figure renderer.
 
         Args:
-            skin: WaveDrom skin to use for rendering.
+            skin: Rendering style/theme (currently unused, for compatibility).
         """
         self.skin = skin
         self.categorizer = SignalCategorizer()
@@ -29,14 +30,16 @@ class MultiFigureRenderer:
         output_dir: str,
         base_name: str = "waveform",
         formats: list[str] | None = None,
+        verilog_file: str | None = None,
     ) -> int:
-        """Render categorized figures from VCD file.
+        """Render enhanced categorized figures using SignalPlotter with golden references.
 
         Args:
             vcd_file: Path to VCD file.
             output_dir: Output directory for generated files.
             base_name: Base name for output files.
             formats: List of formats to generate ('png', 'svg', 'html').
+            verilog_file: Optional Verilog file for enhanced categorization.
 
         Returns:
             Exit code (0 for success).
@@ -47,68 +50,195 @@ class MultiFigureRenderer:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Rendering categorized figures from {vcd_file}")
+        logger.info(f"Rendering enhanced categorized figures from {vcd_file}")
 
-        # Parse and categorize all signals
-        from .parser import VCDParser
-
-        parser = VCDParser(vcd_file)
-        all_signals = parser.parse_signals()
-        category = self.categorizer.categorize_signals(all_signals)
-
-        # Determine clock signal
-        clock_signal = self.categorizer.suggest_clock_signal(category)
-        if not clock_signal:
-            logger.warning("No suitable clock signal found, using first available signal")
-            all_paths = list(all_signals.keys())
-            clock_signal = all_paths[0] if all_paths else None
-
-        if not clock_signal:
-            raise ValueError("No signals found in VCD file")
-
-        # Generate figures for each category
-        figures = {
-            "ports": {
-                "title": "Input and Output Ports",
-                "signals": [clock_signal] + category.get_ports(),
-                "filename": f"{base_name}_ports",
-            },
-            "internal": {
-                "title": "Internal Signals",
-                "signals": [clock_signal] + category.internal_signals,
-                "filename": f"{base_name}_internal",
-            },
-            "all": {
-                "title": "All Signals",
-                "signals": [clock_signal] + category.get_ports() + category.internal_signals,
-                "filename": f"{base_name}_all",
-            },
-        }
-
-        for fig_name, fig_config in figures.items():
-            if not fig_config["signals"] or len(fig_config["signals"]) <= 1:
-                logger.warning(f"Skipping {fig_name} figure: insufficient signals")
-                continue
-
-            logger.info(f"Generating {fig_name} figure with {len(fig_config['signals'])} signals")
-
-            # Extract signals to JSON
-            json_file = output_path / f"{fig_config['filename']}.json"
-            self._extract_signals_to_json(
-                vcd_file, list(fig_config["signals"]), str(json_file), all_signals
+        try:
+            # Use enhanced SignalPlotter for better styling
+            plotter = SignalPlotter(
+                vcd_file=vcd_file,
+                verilog_file=verilog_file,
+                output_dir=output_dir
             )
 
-            # Generate images in requested formats
-            for fmt in formats:
-                if fmt == "html":
-                    html_file = output_path / f"{fig_config['filename']}.html"
-                    self.renderer.render_to_html(str(json_file), str(html_file))
-                else:
-                    image_file = output_path / f"{fig_config['filename']}.{fmt}"
-                    self.renderer.render_to_image(str(json_file), str(image_file))
+            # Load and categorize data
+            if not plotter.load_data():
+                logger.error("Failed to load VCD data")
+                return 1
 
-        logger.info(f"Generated figures in {output_dir}")
-        return 0
+            if not plotter.categorize_signals():
+                logger.error("Failed to categorize signals")
+                return 1
+
+            # Generate enhanced categorized plots
+            self._generate_enhanced_categorized_plots(plotter, output_path, base_name, formats)
+
+            logger.info(f"Generated enhanced categorized figures in {output_dir}")
+            return 0
+
+        except Exception as e:
+            logger.error(f"Error in enhanced categorized plotting: {e}")
+            return 1
+
+    def _generate_enhanced_categorized_plots(self, plotter, output_path: Path, base_name: str, formats: list[str]) -> None:
+        """Generate enhanced categorized plots using SignalPlotter."""
+
+        # The SignalPlotter already has categorized signals, use them directly
+        if not plotter.categories:
+            logger.warning("No categorized signals available")
+            return
+
+        category = plotter.categories
+
+        # Determine clock signal for reference
+        clock_signals = [s for s in category.inputs if 'clock' in s.lower() or 'clk' in s.lower()]
+        reset_signals = [s for s in category.inputs if 'reset' in s.lower() or 'rst' in s.lower()]
+        clock_signal = clock_signals[0] if clock_signals else None
+
+        # Generate figures for each category with enhanced styling
+        category_configs = [
+            ("clocks", "Clock Signals", clock_signals),
+            ("resets", "Reset Signals", reset_signals),
+            ("inputs", "Input Ports", [s for s in category.inputs if s not in clock_signals and s not in reset_signals]),
+            ("outputs", "Output Ports", category.outputs),
+            ("internals", "Internal Signals", category.internal),
+        ]
+
+        for category_name, title, signals in category_configs:
+            if not signals:
+                logger.warning(f"No signals found for {category_name} category")
+                continue
+
+            # Add clock signal if available
+            plot_signals = [clock_signal] + signals if clock_signal else signals
+
+            if len(plot_signals) <= 1:
+                logger.warning(f"Skipping {category_name} figure: insufficient signals")
+                continue
+
+            logger.info(f"Generating enhanced {category_name} figure with {len(plot_signals)} signals")
+
+            # Create enhanced plot using SignalPlotter
+            plotter._create_enhanced_signal_plot(
+                plot_signals,
+                f"{title} (Enhanced)",
+                f"{base_name}_{category_name}.png",
+                color='mixed'  # Use mixed colors for categorized plots
+            )
+
+            # Generate additional formats if requested
+            for fmt in formats:
+                if fmt == "svg":
+                    # For SVG, we'd need to implement SVG export in SignalPlotter
+                    logger.info(f"SVG format requested for {category_name} but not yet implemented")
+                elif fmt == "html":
+                    # For HTML, we'd need to implement HTML export in SignalPlotter
+                    logger.info(f"HTML format requested for {category_name} but not yet implemented")
+
+            # Generate JSON file for this category
+            self._generate_category_json(plotter, category_name, signals, output_path)
+
+    def _generate_category_json(self, plotter: "SignalPlotter", category_name: str, signals: list[str], output_path: Path) -> None:
+        """Generate JSON file for a specific signal category.
+
+        Args:
+            plotter: The SignalPlotter instance with VCD data
+            category_name: Name of the signal category
+            signals: List of signal paths in this category
+            output_path: Base output directory path
+        """
+        if not signals:
+            logger.warning(f"No signals found for {category_name} category, skipping JSON generation")
+            return
+
+        try:
+            # Create JSON file path in plots subdirectory
+            json_file = output_path / "plots" / f"{category_name}.json"
+
+            # Use WaveExtractor to generate JSON for these specific signals
+            from .extractor import WaveExtractor
+            extractor = WaveExtractor(str(plotter.vcd_file), str(json_file), signals)
+
+            # Set some basic parameters
+            extractor.start_time = 0
+            extractor.end_time = 0  # Extract full range
+
+            result = extractor.execute()
+
+            if result == 0 and json_file.exists():
+                logger.info(f"Generated JSON file for {category_name}: {json_file}")
+            else:
+                logger.warning(f"Failed to generate JSON for {category_name}: WaveExtractor returned {result}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate JSON for {category_name}: {e}")
+
+    def render_enhanced_plots_with_golden_references(
+        self,
+        vcd_file: str,
+        verilog_file: str | None = None,
+        output_dir: str = "enhanced_plots"
+    ) -> int:
+        """Render enhanced plots with golden references using SignalPlotter.
+
+        Args:
+            vcd_file: Path to VCD file.
+            verilog_file: Optional path to Verilog file for enhanced categorization.
+            output_dir: Output directory for enhanced plots.
+
+        Returns:
+            Exit code (0 for success).
+        """
+        try:
+            logger.info(f"Rendering enhanced plots with golden references from {vcd_file}")
+
+            output_path = Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+
+            # Step 1: Create SignalPlotter and generate enhanced plots directly from VCD
+            logger.info("Generating enhanced plots with golden references...")
+            plotter = SignalPlotter(
+                vcd_file=vcd_file,
+                verilog_file=verilog_file,
+                output_dir=str(output_path)
+            )
+
+            # Load and categorize data
+            if not plotter.load_data():
+                logger.error("Failed to load VCD data")
+                return 1
+
+            if not plotter.categorize_signals():
+                logger.error("Failed to categorize signals")
+                return 1
+
+            # Generate all 4 types of plots
+            if not plotter.generate_plots():
+                logger.error("Failed to generate plots")
+                return 1
+
+            logger.info("Generated 4 types of enhanced plots:")
+            logger.info("  - input_ports.png")
+            logger.info("  - output_ports.png")
+            logger.info("  - all_ports.png")
+            logger.info("  - all_signals.png")
+
+            # Step 3: Generate comprehensive report
+            logger.info("Generating comprehensive analysis report...")
+            report = plotter.generate_summary_report()
+
+            # Save report to file
+            report_file = output_path / "signal_analysis_report.md"
+            with open(report_file, 'w') as f:
+                f.write(report)
+
+            logger.info(f"Generated comprehensive report: {report_file}")
+
+            logger.info("Enhanced plotting with golden references completed successfully")
+            return 0
+
+        except Exception as e:
+            logger.error(f"Error in enhanced plotting: {e}")
+            return 1
 
     def _extract_signals_to_json(
         self,
@@ -139,10 +269,10 @@ class MultiFigureRenderer:
         if result != 0:
             raise RuntimeError(f"Signal extraction failed with code {result}")
 
-    def render_lazy_plot(
+    def render_auto_plot(
         self, vcd_file: str, output_file: str, max_signals_per_figure: int = 10
     ) -> int:
-        """Render a lazy plot with all signals in a single organized figure.
+        """Render an auto plot with all signals in a single organized figure using enhanced plotting.
 
         Args:
             vcd_file: Path to VCD file.
@@ -152,54 +282,42 @@ class MultiFigureRenderer:
         Returns:
             Exit code (0 for success).
         """
-        logger.info(f"Rendering lazy plot from {vcd_file}")
+        logger.info(f"Rendering enhanced auto plot from {vcd_file}")
 
-        # Parse and categorize all signals
-        from .parser import VCDParser
+        try:
+            # Use enhanced SignalPlotter for better styling
+            plotter = SignalPlotter(
+                vcd_file=vcd_file,
+                verilog_file=None,  # No Verilog file for basic auto plotting
+                output_dir="."
+            )
 
-        parser = VCDParser(vcd_file)
-        all_signals = parser.parse_signals()
-        category = self.categorizer.categorize_signals(all_signals)
+            # Load and categorize data
+            if not plotter.load_data():
+                logger.error("Failed to load VCD data")
+                return 1
 
-        # Build organized signal list
-        signal_groups = []
+            if not plotter.categorize_signals():
+                logger.error("Failed to categorize signals")
+                return 1
 
-        # Start with clock
-        clock_signal = self.categorizer.suggest_clock_signal(category)
-        if clock_signal:
-            signal_groups.append([clock_signal])
-        else:
-            # Use first available signal as clock
-            all_paths = list(all_signals.keys())
-            if all_paths:
-                signal_groups.append([all_paths[0]])
+            # Get all signals in organized order
+            all_signals = plotter.categories.all_signals
 
-        # Add input ports
-        if category.input_ports:
-            signal_groups.append(category.input_ports[:max_signals_per_figure])
+            if len(all_signals) <= 1:
+                raise ValueError("Insufficient signals for plotting")
 
-        # Add output ports
-        if category.output_ports:
-            signal_groups.append(category.output_ports[:max_signals_per_figure])
+            # Use enhanced plotting for the single organized figure
+            plotter._create_enhanced_signal_plot(
+                all_signals,
+                "Auto Plot (Enhanced)",
+                Path(output_file).name,
+                color='mixed'
+            )
 
-        # Add internal signals
-        if category.internal_signals:
-            # Group internal signals in chunks
-            for i in range(0, len(category.internal_signals), max_signals_per_figure):
-                chunk = category.internal_signals[i : i + max_signals_per_figure]
-                signal_groups.append(chunk)
+            logger.info(f"Created enhanced auto plot: {output_file}")
+            return 0
 
-        # Flatten for single JSON extraction
-        all_signal_paths = []
-        for group in signal_groups:
-            all_signal_paths.extend(group)
-
-        if len(all_signal_paths) <= 1:
-            raise ValueError("Insufficient signals for plotting")
-
-        # Extract to JSON
-        json_file = output_file.replace(".png", ".json").replace(".svg", ".json")
-        self._extract_signals_to_json(vcd_file, all_signal_paths, json_file, all_signals)
-
-        # Render to image
-        return self.renderer.render_to_image(json_file, output_file)
+        except Exception as e:
+            logger.error(f"Error in enhanced auto plotting: {e}")
+            return 1

@@ -35,7 +35,6 @@ class SignalSampler:
         Returns:
             List of sample dictionaries for each time group.
         """
-        origin = self.now
         sample_groups: list[dict[str, list[str]]] = []
 
         # Initialize value and sample dictionaries
@@ -102,9 +101,8 @@ class SignalSampler:
 
                 # Detect negative clock edge
                 if old_clock == "1" and new_clock == "0":
-                    if data_count == 0:
-                        origin = self.now
-                    if self.start_time <= origin:
+                    # Check if we're within the sampling time range
+                    if self.start_time <= self.now and (self.end_time == 0 or self.now <= self.end_time):
                         # Sample all signals
                         for sid in sample_dict:
                             sample_dict[sid].append(value_dict[sid])

@@ -6,10 +6,12 @@ from enum import Enum
 class SignalType(Enum):
     """Enumeration of signal types for categorization."""
 
-    INPUT_PORT = "input_port"
-    OUTPUT_PORT = "output_port"
-    INTERNAL_SIGNAL = "internal_signal"
+    INPUT = "input"
+    OUTPUT = "output"
+    INTERNAL = "internal"
     CLOCK = "clock"
+    RESET = "reset"
+    UNKNOWN = "unknown"
 
 
 class SignalDef:
@@ -29,7 +31,7 @@ class SignalDef:
         self.length = length
         self.path = path
         self.fmt = "x"  # Default format
-        self.signal_type: SignalType = SignalType.INTERNAL_SIGNAL
+        self.signal_type: SignalType = SignalType.INTERNAL
 
     def __repr__(self) -> str:
         """String representation of signal definition."""
@@ -41,10 +43,18 @@ class SignalCategory:
 
     def __init__(self) -> None:
         """Initialize signal category container."""
-        self.input_ports: list[str] = []
-        self.output_ports: list[str] = []
-        self.internal_signals: list[str] = []
-        self.clock_signals: list[str] = []
+        self.clocks: list[str] = []
+        self.inputs: list[str] = []
+        self.outputs: list[str] = []
+        self.resets: list[str] = []
+        self.internals: list[str] = []
+        self.unknowns: list[str] = []
+
+        # Backward compatibility aliases
+        self.clock_signals = self.clocks
+        self.input_ports = self.inputs
+        self.output_ports = self.outputs
+        self.internal_signals = self.internals
 
     def get_ports(self) -> list[str]:
         """Get all input and output ports.

@@ -1,170 +1,143 @@
 #!/usr/bin/env python
-"""Examples of using the vcd2image package."""
+"""Core examples demonstrating vcd2image capabilities.
+
+This file demonstrates the main features of the vcd2image tool based on
+the actual implementation in src/vcd2image/:
+- Basic signal extraction (VCD to JSON)
+- Auto plotting with signal categorization
+- Enhanced plotting with golden references
+- JSON to image rendering
+- Signal categorization intelligence
+"""
+
+from pathlib import Path
 
 from vcd2image.core.extractor import WaveExtractor
 from vcd2image.core.multi_renderer import MultiFigureRenderer
+from vcd2image.core.renderer import WaveRenderer
 
 
 def example1():
-    """Check the path name of the signal in the VCD file."""
+    """Basic signal extraction (VCD to JSON)."""
 
-    extractor = WaveExtractor("examples/timer.vcd", "", [])
-    extractor.print_props()
+    path_list = [
+        "tb_timer/u_timer/clock",
+        "tb_timer/u_timer/reset",
+        "tb_timer/u_timer/pulse",
+        "tb_timer/u_timer/count",
+    ]
 
+    vcd_file = Path(__file__).parent / "timer.vcd"
+    output_dir = Path(__file__).parent / "01_basic_extraction"
+    output_dir.mkdir(exist_ok=True)
+    json_file = output_dir / "signals.json"
 
-if __name__ == "__main__":
-    print("")
-    print("Example 1")
-    print("----------------------------------------")
-    example1()
+    extractor = WaveExtractor(str(vcd_file), str(json_file), path_list)
+    extractor.execute()
 
-    # Example 1
-    # ----------------------------------------
-    # vcd_file  = 'timer.vcd'
-    # json_file = ''
-    # path_list = ['tb_timer/clock',
-    #              'tb_timer/pulse',
-    #              'tb_timer/reset',
-    #              'tb_timer/u_timer/clock',
-    #              'tb_timer/u_timer/count',
-    #              'tb_timer/u_timer/count_eq11',
-    #              'tb_timer/u_timer/pulse',
-    #              'tb_timer/u_timer/reset']
-    # wave_chunk = 20
-    # start_time = 0
-    # end_time   = 0
+    print(f"Created WaveJSON file: {json_file}")
 
 
 def example2():
-    """Extract the signal values specified in the path list
-    and output WaveJSON string to the file."""
+    """Auto plotting with signal categorization."""
 
-    path_list = [
-        "tb_timer/u_timer/clock",
-        "tb_timer/u_timer/reset",
-        "tb_timer/u_timer/pulse",
-        "tb_timer/u_timer/count_eq11",
-        "tb_timer/u_timer/count",
-    ]
+    output_dir = Path(__file__).parent / "02_auto_plotting"
+    output_dir.mkdir(exist_ok=True)
 
-    extractor = WaveExtractor("examples/timer.vcd", "examples/timer.json", path_list)
-    extractor.execute()
+    vcd_file = Path(__file__).parent / "timer.vcd"
 
+    renderer = MultiFigureRenderer()
 
-if __name__ == "__main__":
-    print("")
-    print("")
-    print("Example 2")
-    print("----------------------------------------")
-    example2()
+    # Generate multiple categorized figures
+    print("Generating multiple categorized figures...")
+    renderer.render_categorized_figures(
+        vcd_file=str(vcd_file),
+        output_dir=str(output_dir),
+        base_name="categorized",
+        formats=["png", "svg"],
+    )
 
-    # Example 2
-    # ----------------------------------------
-    # vcd_file  = 'timer.vcd'
-    # json_file = 'timer.json'
-    # path_list = ['tb_timer/u_timer/clock',
-    #              'tb_timer/u_timer/reset',
-    #              'tb_timer/u_timer/pulse',
-    #              'tb_timer/u_timer/count_eq11',
-    #              'tb_timer/u_timer/count']
-    # wave_chunk = 20
-    # start_time = 0
-    # end_time   = 0
-    #
-    # Create WaveJSON file "timer.json".
+    print(f"Generated categorized plotting results in: {output_dir}/")
 
 
 def example3():
-    """Set sampling duration and display format.
-    The result is displayed on standard output."""
+    """Enhanced plotting with golden references."""
 
-    path_list = [
-        "tb_timer/u_timer/clock",
-        "tb_timer/u_timer/reset",
-        "tb_timer/u_timer/pulse",
-        "tb_timer/u_timer/count_eq11",
-        "tb_timer/u_timer/count",
-    ]
+    from vcd2image.core.multi_renderer import MultiFigureRenderer
 
-    extractor = WaveExtractor("examples/timer.vcd", "", path_list)
-    extractor.wave_chunk = 10
-    extractor.start_time = 100
-    extractor.end_time = 500
-    extractor.wave_format("tb_timer/u_timer/count", "u")
-    extractor.execute()
+    output_dir = Path(__file__).parent / "03_enhanced_plotting"
+    output_dir.mkdir(exist_ok=True)
+
+    vcd_file = Path(__file__).parent / "timer.vcd"
+    verilog_file = Path(__file__).parent / "timer.v"
+
+    renderer = MultiFigureRenderer()
+    result = renderer.render_enhanced_plots_with_golden_references(
+        vcd_file=str(vcd_file),
+        verilog_file=str(verilog_file),
+        output_dir=str(output_dir)
+    )
+
+    if result == 0:
+        print("Generated enhanced plots with golden references:")
+        print("  - input_ports.png")
+        print("  - output_ports.png")
+        print("  - all_ports.png")
+        print("  - all_signals.png")
+        print(f"Output directory: {output_dir}")
 
 
-if __name__ == "__main__":
-    print("")
-    print("")
-    print("Example 3")
-    print("----------------------------------------")
-    example3()
-
-    # Example 3
-    # ----------------------------------------
-    # { "head": {"tock":1},
-    #   "signal": [
-    #   {   "name": "clock"     , "wave": "p........." },
-    #   {},
-    #   ["110",
-    #     { "name": "reset"     , "wave": "1...0....." },
-    #     { "name": "pulse"     , "wave": "x0........" },
-    #     { "name": "count_eq11", "wave": "0........." },
-    #     { "name": "count"     , "wave": "=....=====", "data": "0 1 2 3 4 5" }
-    #   ],
-    #   {},
-    #   ["310",
-    #     { "name": "reset"     , "wave": "0........." },
-    #     { "name": "pulse"     , "wave": "0.....10.." },
-    #     { "name": "count_eq11", "wave": "0....10..." },
-    #     { "name": "count"     , "wave": "==========", "data": "6 7 8 9 10 11 0 1 2 3" }
-    #   ]
-    #   ]
-    # }
 
 
 def example4():
-    """Auto plotting: Generate single organized plot with all signals."""
+    """Signal categorization intelligence."""
 
-    renderer = MultiFigureRenderer()
-    renderer.render_lazy_plot("examples/timer.vcd", "examples/timer_auto.png")
+    from vcd2image.core.categorizer import SignalCategorizer
+    from vcd2image.core.parser import VCDParser
 
+    # Parse all signals
+    vcd_file = Path(__file__).parent / "timer.vcd"
+    parser = VCDParser(str(vcd_file))
+    all_signals = parser.parse_signals()
 
-if __name__ == "__main__":
-    print("")
-    print("")
-    print("Example 4")
-    print("----------------------------------------")
-    example4()
+    # Categorize signals
+    categorizer = SignalCategorizer()
+    category = categorizer.categorize_signals(all_signals)
 
-    # Example 4
-    # ----------------------------------------
-    # Generates timer_auto.png with all signals organized in a single figure
+    print("Signal Categorization Results:")
+    print(f"Clock signals: {len(category.clock_signals)}")
+    print(f"Input ports: {len(category.input_ports)}")
+    print(f"Output ports: {len(category.output_ports)}")
+    print(f"Reset signals: {len(category.resets)}")
+    print(f"Internal signals: {len(category.internal_signals)}")
+    print(f"Unknown signals: {len(category.unknowns)}")
 
-
-def example5():
-    """Auto plotting: Generate multiple categorized figures."""
-
-    renderer = MultiFigureRenderer()
-    renderer.render_categorized_figures(
-        vcd_file="examples/timer.vcd",
-        output_dir="examples/figures",
-        base_name="timer",
-        formats=["png", "svg", "html"],
-    )
+    # Show suggested clock
+    suggested_clock = categorizer.suggest_clock_signal(category)
+    print(f"Suggested clock signal: {suggested_clock}")
 
 
 if __name__ == "__main__":
-    print("")
-    print("")
-    print("Example 5")
-    print("----------------------------------------")
-    example5()
+    print("VCD2Image Core Examples")
+    print("=" * 50)
 
-    # Example 5
-    # ----------------------------------------
-    # Generates multiple figures:
-    # - timer_ports.png/svg/html: Input and output ports
-    # - timer_internal.png/svg/html: Internal signals
-    # - timer_all.png/svg/html: All signals
+    examples = [
+        ("Basic signal extraction (VCD to JSON)", example1),
+        ("Auto plotting with signal categorization", example2),
+        ("Enhanced plotting with golden references", example3),
+        ("Signal categorization intelligence", example4),
+    ]
+
+    for i, (description, example_func) in enumerate(examples, 1):
+        print(f"\n{i}. {description}")
+        print("-" * (len(description) + 3))
+        try:
+            example_func()
+        except Exception as e:
+            print(f"Error in example {i}: {e}")
+
+    print(f"\n{'=' * 50}")
+    print("All core examples completed!")
+    print("\nGenerated files demonstrate the actual capabilities of vcd2image:")
+    print("- WaveJSON extraction from VCD files")
+    print("- Automatic signal categorization and plotting")

@@ -45,6 +45,69 @@ This directory contains utility scripts to help with development, testing, and d
 ./scripts/test.sh --format   # Only formatting check
 ```
 
+### `clean.sh`
+**Purpose**: Clean generated files and build artifacts from the project.
+
+**Features**:
+- Clean examples directory (remove generated JSON, PNG, HTML, SVG files)
+- Clean build artifacts and caches
+- Dry-run mode to preview what will be deleted
+- Interactive confirmation (with force option)
+- Colored output for better readability
+
+**Usage**:
+```bash
+# Clean examples directory (default)
+./scripts/clean.sh
+
+# Same as above (explicit target)
+./scripts/clean.sh examples
+
+# Clean everything (examples + build artifacts, caches)
+./scripts/clean.sh all
+
+# Preview what would be deleted (dry run)
+./scripts/clean.sh --dry-run
+./scripts/clean.sh examples --dry-run
+./scripts/clean.sh all --dry-run
+
+# Skip confirmation prompts
+./scripts/clean.sh --force
+./scripts/clean.sh examples --force
+./scripts/clean.sh all --force
+
+# Show help
+./scripts/clean.sh --help
+```
+
+**What gets cleaned**:
+
+**Examples directory** (`./scripts/clean.sh examples`):
+- All JSON files (*.json) - WaveJSON data files
+- All PNG files (*.png) - Generated images
+- All HTML files (*.html) - Interactive waveforms
+- All SVG files (*.svg) - Vector graphics
+- Generated directories (*single_figure/, *categorized_figures/, *wave_skins/, *multi_format/, *signal_grouping/, *cli_equivalents/, *batch_processing/, figures/)
+
+**Keeps**: timer.v, timer.vcd, example.py, README.md
+
+**Directory removal pattern**: Removes any directory ending with:
+- `*single_figure` (from example 4)
+- `*categorized_figures` (from example 5)
+- `*wave_skins` (from example 6)
+- `*multi_format` (from example 8)
+- `*signal_grouping` (from example 10)
+- `*cli_equivalents` (from example 11)
+- `*batch_processing` (from example 13)
+- `figures` (legacy from example 5)
+
+**Full clean** (`./scripts/clean.sh all`):
+- Everything in examples directory
+- Python cache files (__pycache__/, *.pyc)
+- Build artifacts (build/, dist/, *.egg-info/)
+- Coverage reports (htmlcov/, .coverage)
+- Linter caches (.ruff_cache/, .mypy_cache/)
+
 ### `github_ops.sh`
 **Purpose**: Handle common GitHub operations for repository management.
 
@@ -105,6 +168,11 @@ This directory contains utility scripts to help with development, testing, and d
 - Virtual environment activated
 - Dependencies installed (run `install.sh` first)
 
+### For `clean.sh`:
+- Bash shell (Unix-like systems or Git Bash on Windows)
+- Basic Unix utilities (find, rm)
+- On Windows, use Git Bash or WSL to run the script
+
 ### For `github_ops.sh`:
 - Git installed and configured
 - Repository initialized (use `init` command)
@@ -132,11 +200,27 @@ source venv/bin/activate
 # 6. Run tests
 ./scripts/test.sh
 
-# 7. Push changes
+# 7. Clean generated files before committing (optional)
+./scripts/clean.sh examples
+
+# 8. Push changes
 ./scripts/github_ops.sh push
 
-# 8. Create releases as needed
+# 9. Create releases as needed
 ./scripts/github_ops.sh release 0.1.0 "Initial release"
+```
+
+**Cleaning workflow**:
+
+```bash
+# Clean examples directory after running examples
+./scripts/clean.sh examples
+
+# Clean everything (examples + build artifacts) for fresh start
+./scripts/clean.sh all
+
+# Preview what would be cleaned
+./scripts/clean.sh --dry-run
 ```
 
 For projects with submodules:

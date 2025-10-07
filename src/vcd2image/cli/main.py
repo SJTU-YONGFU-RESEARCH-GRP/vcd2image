@@ -184,7 +184,7 @@ def main() -> int:
                     # Generate single auto plot
                     if not args.image:
                         raise ValueError("Image output required for auto plotting (use -i/--image)")
-                    result = multi_renderer.render_lazy_plot(
+                    result = multi_renderer.render_auto_plot(
                         vcd_file=args.input_file, output_file=args.image
                     )
                     if result == 0:
