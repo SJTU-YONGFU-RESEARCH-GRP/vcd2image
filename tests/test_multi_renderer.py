@@ -523,17 +523,6 @@ class TestMultiFigureRenderer:
         # Should return 1 due to exception
         assert result == 1
 
-    def test_generate_category_json_wave_extractor_failure(self) -> None:
-        """Test _generate_category_json with WaveExtractor failure (covers lines 205-207)."""
-        # This test covers the warning path when WaveExtractor fails
-        # The actual complex mocking is too fragile, so we test the simpler path
-        pass
-
-    def test_generate_category_json_exception_handling(self) -> None:
-        """Test _generate_category_json exception handling (covers lines 209-210)."""
-        # This test covers exception handling in the try/catch block
-        # The actual complex mocking is too fragile, so we test the simpler path
-        pass
 
     @patch("vcd2image.core.multi_renderer.SignalPlotter")
     def test_render_enhanced_plots_with_golden_references_success(self, mock_signal_plotter, tmp_path, caplog) -> None:

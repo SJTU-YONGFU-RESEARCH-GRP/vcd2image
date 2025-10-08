@@ -450,20 +450,33 @@ class TestSignalPlotter:
         plotter.data = pd.DataFrame({
             "test_case": [0, 1, 2, 3],
             "input1": [0, 1, 0, 1],
+            "enable": [1, 1, 1, 0],  # Enable signal
             "output1": [1, 0, 1, 0],
+            "counter": [0, 1, 2, 3],  # Counter signal
             "clock": [0, 1, 0, 1],
+            "clock2": [1, 0, 1, 0],  # Second clock
             "reset": [1, 1, 0, 0],
             "internal1": [0, 0, 1, 1],
             "reg1": [1, 1, 0, 0]
         })
 
         plotter.categories = SignalCategory()
-        plotter.categories.inputs = ["input1", "clock", "reset"]
-        plotter.categories.outputs = ["output1"]
-        plotter.categories.clocks = ["clock"]
+        plotter.categories.inputs = ["input1", "enable", "clock", "clock2", "reset"]
+        plotter.categories.outputs = ["output1", "counter"]
+        plotter.categories.clocks = ["clock", "clock2"]  # Multiple clocks
         plotter.categories.resets = ["reset"]
         plotter.categories.internals = ["internal1", "reg1"]
-        plotter.categories.all_signals = ["input1", "output1", "clock", "reset", "internal1", "reg1"]
+        plotter.categories.all_signals = ["input1", "enable", "output1", "counter", "clock", "clock2", "reset", "internal1", "reg1"]
+
+        # Set up parser for module information
+        mock_parser = Mock()
+        mock_parser.module_name = "test_module"
+        mock_parser.parameters = {"WIDTH": "8"}
+        mock_parser.inputs = {"input1": (1, "Input"), "enable": (1, "Input")}
+        mock_parser.outputs = {"output1": (1, "Output"), "counter": (4, "Output")}
+        mock_parser.wires = {"internal1": (1, "Wire")}
+        mock_parser.regs = {"reg1": (1, "Register")}
+        plotter.parser = mock_parser
 
         report = plotter.generate_summary_report()
 
@@ -473,7 +486,7 @@ class TestSignalPlotter:
         assert "# Enhanced Signal Analysis Report" in report
 
         # Check output signals section (lines 1558-1577)
-        assert "### Output Signals (1)" in report
+        assert "### Output Signals (2)" in report
         assert "| Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |" in report
         assert "`output1`" in report
 
