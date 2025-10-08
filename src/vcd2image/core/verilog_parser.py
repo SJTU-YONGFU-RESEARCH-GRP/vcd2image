@@ -12,6 +12,7 @@ from pathlib import Path
 @dataclass
 class VerilogModule:
     """Data class to hold Verilog module information."""
+
     name: str
     inputs: dict[str, tuple[int, str]]  # signal_name -> (width, description)
     outputs: dict[str, tuple[int, str]]
@@ -64,7 +65,7 @@ class VerilogParser:
     def _parse_module(self) -> bool:
         """Parse module definition and extract signal information."""
         # Find module declaration
-        module_pattern = r'module\s+(\w+)\s*(?:\([^)]*\))?\s*;'
+        module_pattern = r"module\s+(\w+)\s*(?:\([^)]*\))?\s*;"
         match = re.search(module_pattern, self.content, re.IGNORECASE)
 
         if not match:
@@ -85,7 +86,7 @@ class VerilogParser:
             outputs=self.outputs,
             wires=self.wires,
             regs=self.regs,
-            parameters=self.parameters
+            parameters=self.parameters,
         )
 
         return True
@@ -95,7 +96,7 @@ class VerilogParser:
         inputs = {}
 
         # Find input declarations within the module
-        input_pattern = r'input\s+(?:wire\s+)?(?:\[(\d+):(\d+)\]\s+)?(\w+);'
+        input_pattern = r"input\s+(?:wire\s+)?(?:\[(\d+):(\d+)\]\s+)?(\w+);"
         matches = re.findall(input_pattern, self.content, re.IGNORECASE)
 
         for match in matches:
@@ -117,7 +118,7 @@ class VerilogParser:
         outputs = {}
 
         # Find output declarations within the module
-        output_pattern = r'output\s+(?:wire\s+|reg\s+)?(?:\[(\d+):(\d+)\]\s+)?(\w+);'
+        output_pattern = r"output\s+(?:wire\s+|reg\s+)?(?:\[(\d+):(\d+)\]\s+)?(\w+);"
         matches = re.findall(output_pattern, self.content, re.IGNORECASE)
 
         for match in matches:
@@ -139,7 +140,7 @@ class VerilogParser:
         wires = {}
 
         # Find wire declarations within the module
-        wire_pattern = r'wire\s+(?:\[(\d+):(\d+)\]\s+)?(\w+);'
+        wire_pattern = r"wire\s+(?:\[(\d+):(\d+)\]\s+)?(\w+);"
         matches = re.findall(wire_pattern, self.content, re.IGNORECASE)
 
         for match in matches:
@@ -161,7 +162,7 @@ class VerilogParser:
         regs = {}
 
         # Find reg declarations within the module
-        reg_pattern = r'reg\s+(?:\[(\d+):(\d+)\]\s+)?(\w+);'
+        reg_pattern = r"reg\s+(?:\[(\d+):(\d+)\]\s+)?(\w+);"
         matches = re.findall(reg_pattern, self.content, re.IGNORECASE)
 
         for match in matches:
@@ -183,7 +184,7 @@ class VerilogParser:
         parameters = {}
 
         # Find parameter declarations within the module
-        param_pattern = r'parameter\s+(\w+)\s*=\s*([^;]+);'
+        param_pattern = r"parameter\s+(\w+)\s*=\s*([^;]+);"
         matches = re.findall(param_pattern, self.content, re.IGNORECASE)
 
         for match in matches:
@@ -198,8 +199,12 @@ class VerilogParser:
             return None
 
         # Check all signal dictionaries
-        all_signals = {**self.module.inputs, **self.module.outputs,
-                      **self.module.wires, **self.module.regs}
+        all_signals = {
+            **self.module.inputs,
+            **self.module.outputs,
+            **self.module.wires,
+            **self.module.regs,
+        }
 
         return all_signals.get(signal_name)
 
@@ -208,7 +213,11 @@ class VerilogParser:
         if not self.module:
             return set()
 
-        all_signals = {**self.module.inputs, **self.module.outputs,
-                      **self.module.wires, **self.module.regs}
+        all_signals = {
+            **self.module.inputs,
+            **self.module.outputs,
+            **self.module.wires,
+            **self.module.regs,
+        }
 
         return set(all_signals.keys())

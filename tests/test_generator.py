@@ -93,6 +93,10 @@ class TestWaveJSONGenerator:
         wave = generator._create_wave(["1", "0", "1"])
         assert wave == '"101"'
 
+        # Test with high impedance values
+        wave = generator._create_wave(["1", "z", "0"])
+        assert wave == '"1z0"'
+
         # Test empty samples
         wave = generator._create_wave([])
         assert wave == '""'
@@ -108,6 +112,12 @@ class TestWaveJSONGenerator:
 
         assert wave == '"=="'  # equals signs for data values
         assert data == '"1010 1111"'
+
+        # Test high impedance values
+        samples = ["1010", "zzzz", "1111"]
+        wave, data = generator._create_wave_data(samples, 4, "b")
+        assert wave == '"=z="'  # z for high impedance
+        assert data == '"1010 1111"'  # z values don't add to data
 
         # Test empty samples
         wave, data = generator._create_wave_data([], 4, "b")

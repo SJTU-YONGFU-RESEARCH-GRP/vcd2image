@@ -243,7 +243,7 @@ if [ "$RUN_ALL" = true ] || [ "$RUN_EXAMPLES" = true ]; then
 
         # Verify all outputs are in examples directory
         log_info "Verifying all generated files are in examples/ directory..."
-        GENERATED_FILES="$TEST_JSON $TEST_PNG $TEST_FULL_PNG $TEST_AUTO_PNG"
+        GENERATED_FILES="$TEST_JSON $TEST_PNG $TEST_FULL_PNG"
         MISSING_FILES=""
 
         for file in $GENERATED_FILES; do
@@ -254,6 +254,14 @@ if [ "$RUN_ALL" = true ] || [ "$RUN_EXAMPLES" = true ]; then
                 MISSING_FILES="$MISSING_FILES $file"
             fi
         done
+
+        # Check auto plot file (created in plots/ subdirectory)
+        if [ -f "plots/$TEST_AUTO_PNG" ]; then
+            log_success "✓ Generated file found: plots/$TEST_AUTO_PNG"
+        else
+            log_error "✗ Generated file missing: plots/$TEST_AUTO_PNG"
+            MISSING_FILES="$MISSING_FILES plots/$TEST_AUTO_PNG"
+        fi
 
         if [ -d "$TEST_FIGURES_DIR" ]; then
             FIGURE_COUNT=$(find "$TEST_FIGURES_DIR" -type f | wc -l)
@@ -283,6 +291,7 @@ if [ "$RUN_ALL" = true ] || [ "$RUN_EXAMPLES" = true ]; then
         # Clean up test files
         log_info "Cleaning up test output files..."
         rm -f $GENERATED_FILES
+        rm -f "plots/$TEST_AUTO_PNG"
         rm -rf "$TEST_FIGURES_DIR"
 
         # Report results

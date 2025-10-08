@@ -8,6 +8,24 @@ import pytest
 
 
 @pytest.fixture
+def timer_vcd_file() -> Path:
+    """Provide path to the timer.vcd test file.
+
+    This fixture uses the timer.vcd file from tests/test_data/
+    to ensure test stability and avoid conflicts with example modifications.
+
+    Returns:
+        Path to the timer.vcd test file.
+    """
+    vcd_file = Path(__file__).parent / "test_data" / "timer.vcd"
+
+    if not vcd_file.exists():
+        pytest.skip("timer.vcd file not found in tests/test_data/")
+
+    return vcd_file
+
+
+@pytest.fixture
 def real_vcd_file(tmp_path: Path) -> Generator[Path, None, None]:
     """Generate a real VCD file using iverilog simulation.
 
@@ -36,7 +54,7 @@ def real_vcd_file(tmp_path: Path) -> Generator[Path, None, None]:
             capture_output=True,
             text=True,
             cwd=sim_dir,
-            timeout=30
+            timeout=30,
         )
 
         if compile_result.returncode != 0:
@@ -48,7 +66,7 @@ def real_vcd_file(tmp_path: Path) -> Generator[Path, None, None]:
             capture_output=True,
             text=True,
             cwd=sim_dir,
-            timeout=30
+            timeout=30,
         )
 
         if run_result.returncode != 0:

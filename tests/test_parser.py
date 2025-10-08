@@ -123,3 +123,41 @@ $enddefinitions $end
         assert len(path_dict) == 2
         assert "top/clock" in path_dict
         assert "top/data" in path_dict
+
+    def test_create_path_dict_missing_enddefinitions(self, tmp_path) -> None:
+        """Test _create_path_dict with missing $enddefinitions."""
+        vcd_content = """$scope module top $end
+$var wire 1 $ clock $end
+$upscope $end
+"""
+
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text(vcd_content)
+
+        parser = VCDParser(str(vcd_file))
+
+        with open(str(vcd_file), encoding="utf-8") as fin:
+            with pytest.raises(EOFError, match="Can't find word '\\$enddefinitions' in VCD file"):
+                parser._create_path_dict(fin)
+
+    def test_create_path_dict_with_empty_lines(self, tmp_path) -> None:
+        """Test _create_path_dict handles empty lines correctly."""
+        vcd_content = """$scope module top $end
+
+$var wire 1 $ clock $end
+
+$upscope $end
+$enddefinitions $end
+"""
+
+        vcd_file = tmp_path / "test.vcd"
+        vcd_file.write_text(vcd_content)
+
+        parser = VCDParser(str(vcd_file))
+
+        with open(str(vcd_file), encoding="utf-8") as fin:
+            all_paths, path_dict = parser._create_path_dict(fin)
+
+        assert len(all_paths) == 1
+        assert len(path_dict) == 1
+        assert "top/clock" in path_dict

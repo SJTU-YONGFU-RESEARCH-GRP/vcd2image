@@ -2,11 +2,17 @@
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .categorizer import SignalCategorizer
+from .extractor import WaveExtractor
 from .models import SignalDef
+from .parser import VCDParser
 from .renderer import WaveRenderer
 from .signal_plotter import SignalPlotter
+
+if TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +61,7 @@ class MultiFigureRenderer:
         try:
             # Use enhanced SignalPlotter for better styling
             plotter = SignalPlotter(
-                vcd_file=vcd_file,
-                verilog_file=verilog_file,
-                output_dir=output_dir
+                vcd_file=vcd_file, verilog_file=verilog_file, output_dir=output_dir
             )
 
             # Load and categorize data
@@ -79,7 +83,9 @@ class MultiFigureRenderer:
             logger.error(f"Error in enhanced categorized plotting: {e}")
             return 1
 
-    def _generate_enhanced_categorized_plots(self, plotter, output_path: Path, base_name: str, formats: list[str]) -> None:
+    def _generate_enhanced_categorized_plots(
+        self, plotter: "SignalPlotter", output_path: Path, base_name: str, formats: list[str]
+    ) -> None:
         """Generate enhanced categorized plots using SignalPlotter."""
 
         # The SignalPlotter already has categorized signals, use them directly
@@ -90,8 +96,8 @@ class MultiFigureRenderer:
         category = plotter.categories
 
         # Determine clock signal for reference from available categorized signals
-        clock_signals = [s for s in category.inputs if 'clock' in s.lower() or 'clk' in s.lower()]
-        reset_signals = [s for s in category.inputs if 'reset' in s.lower() or 'rst' in s.lower()]
+        clock_signals = [s for s in category.inputs if "clock" in s.lower() or "clk" in s.lower()]
+        reset_signals = [s for s in category.inputs if "reset" in s.lower() or "rst" in s.lower()]
 
         # Use the first available clock signal (they should already be filtered to top-level)
         clock_signal = clock_signals[0] if clock_signals else None
@@ -100,9 +106,13 @@ class MultiFigureRenderer:
         category_configs = [
             ("clocks", "Clock Signals", clock_signals),
             ("resets", "Reset Signals", reset_signals),
-            ("inputs", "Input Ports", [s for s in category.inputs if s not in clock_signals and s not in reset_signals]),
+            (
+                "inputs",
+                "Input Ports",
+                [s for s in category.inputs if s not in clock_signals and s not in reset_signals],
+            ),
             ("outputs", "Output Ports", category.outputs),
-            ("internals", "Internal Signals", category.internal),
+            ("internals", "Internal Signals", category.internals),
         ]
 
         for category_name, title, signals in category_configs:
@@ -117,14 +127,16 @@ class MultiFigureRenderer:
                 logger.warning(f"Skipping {category_name} figure: insufficient signals")
                 continue
 
-            logger.info(f"Generating enhanced {category_name} figure with {len(plot_signals)} signals")
+            logger.info(
+                f"Generating enhanced {category_name} figure with {len(plot_signals)} signals"
+            )
 
             # Create enhanced plot using SignalPlotter
             plotter._create_enhanced_signal_plot(
                 plot_signals,
                 f"{title} (Enhanced)",
                 f"{base_name}_{category_name}.png",
-                color='mixed'  # Use mixed colors for categorized plots
+                color="mixed",  # Use mixed colors for categorized plots
             )
 
             # Generate additional formats if requested
@@ -134,12 +146,16 @@ class MultiFigureRenderer:
                     logger.info(f"SVG format requested for {category_name} but not yet implemented")
                 elif fmt == "html":
                     # For HTML, we'd need to implement HTML export in SignalPlotter
-                    logger.info(f"HTML format requested for {category_name} but not yet implemented")
+                    logger.info(
+                        f"HTML format requested for {category_name} but not yet implemented"
+                    )
 
             # Generate JSON file for this category
             self._generate_category_json(plotter, category_name, signals, output_path)
 
-    def _generate_category_json(self, plotter: "SignalPlotter", category_name: str, signals: list[str], output_path: Path) -> None:
+    def _generate_category_json(
+        self, plotter: "SignalPlotter", category_name: str, signals: list[str], output_path: Path
+    ) -> None:
         """Generate JSON file for a specific signal category.
 
         Args:
@@ -149,7 +165,9 @@ class MultiFigureRenderer:
             output_path: Base output directory path
         """
         if not signals:
-            logger.warning(f"No signals found for {category_name} category, skipping JSON generation")
+            logger.warning(
+                f"No signals found for {category_name} category, skipping JSON generation"
+            )
             return
 
         try:
@@ -158,7 +176,6 @@ class MultiFigureRenderer:
 
             # Get suggested clock signal for sampling from the original categorizer results
             from .categorizer import SignalCategorizer
-            from .parser import VCDParser
 
             parser = VCDParser(str(plotter.vcd_file))
             signal_dict = parser.parse_signals()
@@ -174,7 +191,6 @@ class MultiFigureRenderer:
                 signals_with_clock = signals
 
             # Use WaveExtractor to generate JSON for these specific signals
-            from .extractor import WaveExtractor
             extractor = WaveExtractor(str(plotter.vcd_file), str(json_file), signals_with_clock)
 
             # Set some basic parameters
@@ -186,16 +202,15 @@ class MultiFigureRenderer:
             if result == 0 and json_file.exists():
                 logger.info(f"Generated JSON file for {category_name}: {json_file}")
             else:
-                logger.warning(f"Failed to generate JSON for {category_name}: WaveExtractor returned {result}")
+                logger.warning(
+                    f"Failed to generate JSON for {category_name}: WaveExtractor returned {result}"
+                )
 
         except Exception as e:
             logger.warning(f"Failed to generate JSON for {category_name}: {e}")
 
     def render_enhanced_plots_with_golden_references(
-        self,
-        vcd_file: str,
-        verilog_file: str | None = None,
-        output_dir: str = "enhanced_plots"
+        self, vcd_file: str, verilog_file: str | None = None, output_dir: str = "enhanced_plots"
     ) -> int:
         """Render enhanced plots with golden references using SignalPlotter.
 
@@ -216,9 +231,7 @@ class MultiFigureRenderer:
             # Step 1: Create SignalPlotter and generate enhanced plots directly from VCD
             logger.info("Generating enhanced plots with golden references...")
             plotter = SignalPlotter(
-                vcd_file=vcd_file,
-                verilog_file=verilog_file,
-                output_dir=str(output_path)
+                vcd_file=vcd_file, verilog_file=verilog_file, output_dir=str(output_path)
             )
 
             # Load and categorize data
@@ -247,7 +260,7 @@ class MultiFigureRenderer:
 
             # Save report to file
             report_file = output_path / "signal_analysis_report.md"
-            with open(report_file, 'w') as f:
+            with open(report_file, "w") as f:
                 f.write(report)
 
             logger.info(f"Generated comprehensive report: {report_file}")
@@ -275,7 +288,6 @@ class MultiFigureRenderer:
             path_dict: Pre-parsed signal dictionary (optional).
         """
         logger.info(f"Extracting signals: {signal_paths}")
-        from .extractor import WaveExtractor
 
         if path_dict:
             # Use pre-filtered path dict
@@ -307,8 +319,8 @@ class MultiFigureRenderer:
             # Use enhanced SignalPlotter for better styling
             plotter = SignalPlotter(
                 vcd_file=vcd_file,
-                verilog_file=None,  # No Verilog file for basic auto plotting
-                output_dir="."
+                verilog_file=None,
+                output_dir=".",  # No Verilog file for basic auto plotting
             )
 
             # Load and categorize data
@@ -321,6 +333,10 @@ class MultiFigureRenderer:
                 return 1
 
             # Get all signals in organized order
+            if plotter.categories is None:
+                logger.error("Signal categories not available after categorization")
+                return 1
+
             all_signals = plotter.categories.all_signals
 
             if len(all_signals) <= 1:
@@ -328,10 +344,7 @@ class MultiFigureRenderer:
 
             # Use enhanced plotting for the single organized figure
             plotter._create_enhanced_signal_plot(
-                all_signals,
-                "Auto Plot (Enhanced)",
-                Path(output_file).name,
-                color='mixed'
+                all_signals, "Auto Plot (Enhanced)", Path(output_file).name, color="mixed"
             )
 
             logger.info(f"Created enhanced auto plot: {output_file}")

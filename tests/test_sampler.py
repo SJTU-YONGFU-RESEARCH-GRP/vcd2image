@@ -173,3 +173,56 @@ $end
 
         # Sampler creates groups based on available data
         assert len(sample_groups) >= 0
+
+    def test_sample_signals_with_empty_lines(self) -> None:
+        """Test sampling handles empty lines correctly."""
+        vcd_dump = """#0
+$dumpvars
+
+1$
+1%
+$end
+#10
+0$
+"""
+
+        fin = StringIO(vcd_dump)
+        sampler = SignalSampler(wave_chunk=2, start_time=0, end_time=0)
+
+        sample_groups = sampler.sample_signals(fin, "$", ["%"])
+
+        # Should handle empty lines gracefully
+        assert isinstance(sample_groups, list)
+
+    def test_sample_signals_with_real_numbers(self) -> None:
+        """Test sampling handles real number lines correctly."""
+        vcd_dump = """#0
+$dumpvars
+r1.5 ! real_value
+1$
+1%
+$end
+"""
+
+        fin = StringIO(vcd_dump)
+        sampler = SignalSampler(wave_chunk=2, start_time=0, end_time=0)
+
+        sample_groups = sampler.sample_signals(fin, "$", ["%"])
+
+        # Should skip real number lines
+        assert isinstance(sample_groups, list)
+
+    def test_sample_signals_unexpected_character(self) -> None:
+        """Test sampling raises error for unexpected characters."""
+        vcd_dump = """#0
+$dumpvars
+q$
+1%
+$end
+"""
+
+        fin = StringIO(vcd_dump)
+        sampler = SignalSampler(wave_chunk=2, start_time=0, end_time=0)
+
+        with pytest.raises(ValueError, match="Unexpected character in VCD file: 'q'"):
+            sampler.sample_signals(fin, "$", ["%"])

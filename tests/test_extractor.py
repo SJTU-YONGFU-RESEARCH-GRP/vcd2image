@@ -246,3 +246,9 @@ b11111111 #
         assert len(path_dict) > 0, "No signals found in VCD file"
         assert "tb_timer/clock" in path_dict, "Clock signal not found"
         assert "tb_timer/pulse" in path_dict, "Pulse signal not found"
+
+    def test_execute_malformed_vcd_missing_enddefinitions(self) -> None:
+        """Test execute with malformed VCD file missing $enddefinitions."""
+        # This tests the parser's EOFError when $enddefinitions is missing
+        with pytest.raises(EOFError, match="Can't find word '\\$enddefinitions' in VCD file"):
+            WaveExtractor("tests/test_data/bad.vcd", "output.json", ["top.!"])

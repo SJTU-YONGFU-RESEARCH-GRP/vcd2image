@@ -127,7 +127,7 @@ def validate_args(args: argparse.Namespace) -> None:
                 raise ValueError(
                     "Cannot specify signals with auto plotting (--auto-plot or --plot-dir)"
                 )
-            if args.output:
+            if args.output and args.output != "/dev/null":
                 raise ValueError("Cannot specify output JSON with auto plotting")
         elif not args.signals and not args.list_signals:
             raise ValueError(
@@ -209,15 +209,39 @@ def main() -> int:
                 if args.list_signals:
                     extractor.print_props()
                 else:
-                    extractor.execute()
-                    json_file = args.output or args.input_file.replace(".vcd", ".json")
-                    logging.info(f"Created WaveJSON file: {json_file}")
+                    if args.image and (not args.output or args.output == "/dev/null"):
+                        # Direct VCD to image conversion - use temporary JSON file
+                        import tempfile
 
-                    if args.image:
-                        # Convert JSON to image
+                        with tempfile.NamedTemporaryFile(
+                            mode="w", suffix=".json", delete=False
+                        ) as temp_json:
+                            temp_json_path = temp_json.name
+
+                        extractor.json_file = temp_json_path
+                        extractor.execute()
+
                         renderer = WaveRenderer()
-                        renderer.render_to_image(json_file, args.image)
+                        renderer.render_to_image(temp_json_path, args.image)
                         logging.info(f"Created image file: {args.image}")
+
+                        # Clean up temporary file
+                        try:
+                            Path(temp_json_path).unlink()
+                        except Exception:
+                            pass  # Ignore cleanup errors
+                    else:
+                        # Standard VCD to JSON conversion
+                        json_file = args.output or args.input_file.replace(".vcd", ".json")
+                        extractor.json_file = json_file
+                        extractor.execute()
+                        logging.info(f"Created WaveJSON file: {json_file}")
+
+                        if args.image:
+                            # Convert JSON to image
+                            renderer = WaveRenderer()
+                            renderer.render_to_image(json_file, args.image)
+                            logging.info(f"Created image file: {args.image}")
 
         else:
             # JSON to image conversion

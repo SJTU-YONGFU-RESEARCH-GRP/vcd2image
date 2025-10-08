@@ -72,9 +72,7 @@ def example3():
 
     renderer = MultiFigureRenderer()
     result = renderer.render_enhanced_plots_with_golden_references(
-        vcd_file=str(vcd_file),
-        verilog_file=str(verilog_file),
-        output_dir=str(output_dir)
+        vcd_file=str(vcd_file), verilog_file=str(verilog_file), output_dir=str(output_dir)
     )
 
     if result == 0:
@@ -84,8 +82,6 @@ def example3():
         print("  - all_ports.png")
         print("  - all_signals.png")
         print(f"Output directory: {output_dir}")
-
-
 
 
 def example4():

@@ -1,0 +1,15 @@
+$date
+  Mon Jan 1 00:00:00 2024
+$end
+$version
+  Test VCD
+$end
+$timescale 1ns $end
+$scope module top $end
+$var wire 1 ! clock $end
+$var wire 1 " data $end
+$upscope $end
+$dumpvars
+0!
+0"
+$end

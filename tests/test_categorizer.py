@@ -78,7 +78,14 @@ class TestSignalCategorizer:
         result = categorizer.categorize_signals(path_dict)
 
         # Check that signals are categorized (exact categorization may vary based on heuristics)
-        total_signals = len(result.clocks) + len(result.inputs) + len(result.outputs) + len(result.resets) + len(result.internals) + len(result.unknowns)
+        total_signals = (
+            len(result.clocks)
+            + len(result.inputs)
+            + len(result.outputs)
+            + len(result.resets)
+            + len(result.internals)
+            + len(result.unknowns)
+        )
         assert total_signals == len(path_dict)
 
         # At minimum, we should have the clock signal identified
@@ -164,6 +171,7 @@ class TestSignalCategorizer:
     def test_matches_any_pattern(self) -> None:
         """Test pattern matching utility."""
         import re
+
         categorizer = SignalCategorizer()
 
         patterns = [re.compile(r"test"), re.compile(r"sample")]
@@ -235,4 +243,175 @@ class TestSignalCategorizer:
         assert len(result.outputs) == 1
         assert "tb_timer.mystery_signal" in result.outputs
 
-    # TODO: Add deep hierarchy internal test when logic is verified
+    def test_classify_signal_deep_hierarchy_internal_prefix(self) -> None:
+        """Test classification of deeply nested signals with internal prefixes."""
+        categorizer = SignalCategorizer()
+
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.name = "data"
+        signal_def.length = 8
+
+        # Test deeply nested signal with internal prefix
+        result = categorizer._classify_signal("tb_test/u_dut/u_submodule/internal_data", signal_def)
+        assert result == SignalType.INTERNAL
+
+    def test_classify_signal_deep_hierarchy_fallback_internal(self) -> None:
+        """Test fallback classification for deeply nested signals."""
+        categorizer = SignalCategorizer()
+
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.name = "xyz987"
+        signal_def.length = 4
+
+        # Test deeply nested signal that doesn't start with "tb_" and doesn't match any patterns
+        # This should hit the deep hierarchy fallback on line 141
+        result = categorizer._classify_signal("top/u_dut/u_submodule/xyz987", signal_def)
+        assert result == SignalType.INTERNAL
+
+    def test_suggest_clock_signal_with_internal_clocks(self) -> None:
+        """Test clock suggestion when internal clocks are present."""
+        categorizer = SignalCategorizer()
+
+        category = MagicMock()
+        # Include both top-level and internal clocks
+        category.clocks = ["clock", "tb_test/u_dut/internal_clock"]
+        category.inputs = []
+        category.outputs = []
+        category.internals = []
+
+        result = categorizer.suggest_clock_signal(category)
+        # Should return the internal clock first
+        assert result == "tb_test/u_dut/internal_clock"
+
+    def test_categorize_signals_unknown_type(self, monkeypatch) -> None:
+        """Test categorizing signals that result in SignalType.UNKNOWN (line 78)."""
+        categorizer = SignalCategorizer()
+
+        # Create a signal
+        unknown_signal = MagicMock(spec=SignalDef)
+        unknown_signal.name = "unknown_signal"
+        unknown_signal.length = 1
+
+        path_dict = {
+            "tb.module.deep.unknown_signal": unknown_signal,
+        }
+
+        # Mock _classify_signal to return SignalType.UNKNOWN
+        def mock_classify(path, signal_def):
+            return SignalType.UNKNOWN
+
+        monkeypatch.setattr(categorizer, "_classify_signal", mock_classify)
+
+        result = categorizer.categorize_signals(path_dict)
+
+        # Should be added to unknowns list
+        assert len(result.unknowns) == 1
+        assert "tb.module.deep.unknown_signal" in result.unknowns
+
+    def test_classify_signal_deep_hierarchy_fallback_logic(self) -> None:
+        """Test _classify_signal_type deep hierarchy fallback (lines 148-153)."""
+        categorizer = SignalCategorizer()
+
+        # Create signal with deep hierarchy but no internal prefixes
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.name = "some_signal"
+        signal_def.length = 1  # Single bit -> should be INPUT
+
+        # Path with > 2 parts but no internal prefixes
+        path = "tb/top/module/some_signal"
+
+        result = categorizer._classify_signal(path, signal_def)
+        assert result == SignalType.INTERNAL  # Due to len(path_parts) > 2
+
+    def test_classify_signal_testbench_output_indicators(self) -> None:
+        """Test classification of testbench signals with output indicators."""
+        categorizer = SignalCategorizer()
+
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.length = 1
+
+        # Test various output indicators
+        output_signals = ["pulse", "done", "ready", "valid", "result", "out"]
+        for signal_name in output_signals:
+            signal_def.name = signal_name
+            path = f"tb.{signal_name}"
+
+            result = categorizer._classify_signal(path, signal_def)
+            assert result == SignalType.OUTPUT, f"Signal {signal_name} should be OUTPUT"
+
+    def test_classify_signal_case_insensitive_matching(self) -> None:
+        """Test that signal classification is case insensitive."""
+        categorizer = SignalCategorizer()
+
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.length = 1
+
+        # Test clock signal with mixed case
+        signal_def.name = "CLK"
+        path = "TB/CLK"
+        result = categorizer._classify_signal(path, signal_def)
+        assert result == SignalType.CLOCK
+
+        # Test reset signal with mixed case
+        signal_def.name = "RST"
+        path = "tb/rst"
+        result = categorizer._classify_signal(path, signal_def)
+        assert result == SignalType.RESET
+
+    def test_classify_signal_complex_hierarchy_patterns(self) -> None:
+        """Test classification with complex hierarchy patterns."""
+        categorizer = SignalCategorizer()
+
+        signal_def = MagicMock(spec=SignalDef)
+        signal_def.length = 1
+
+        # Test signal in deeply nested module with internal prefix
+        signal_def.name = "internal_reg"
+        path = "tb/dut/core/internal_reg"
+        result = categorizer._classify_signal(path, signal_def)
+        assert result == SignalType.INTERNAL  # Due to 'core' prefix
+
+        # Test signal in deeply nested module without internal prefix
+        signal_def.name = "data_bus"
+        path = "tb/dut/logic/data_bus"
+        result = categorizer._classify_signal(path, signal_def)
+        assert result == SignalType.INTERNAL  # Due to deep hierarchy
+
+    def test_suggest_clock_signal_priority_order(self) -> None:
+        """Test clock signal suggestion priority order."""
+        categorizer = SignalCategorizer()
+
+        # Create category with multiple clock sources
+        category = MagicMock()
+        category.clocks = ["tb_clk", "dut/internal_clk", "dut/core/main_clk"]
+        category.inputs = ["reset", "enable"]
+        category.outputs = []
+        category.internals = []
+
+        # Should prefer internal clocks (deeper hierarchy) over testbench clocks
+        result = categorizer.suggest_clock_signal(category)
+        assert result == "dut/core/main_clk"  # Deepest hierarchy
+
+    def test_categorize_signals_with_duplicate_signal_names(self) -> None:
+        """Test categorizing signals with duplicate names in different hierarchies."""
+        categorizer = SignalCategorizer()
+
+        # Create signals with same name but different paths
+        signal1 = MagicMock(spec=SignalDef)
+        signal1.name = "data"
+        signal1.length = 8
+
+        signal2 = MagicMock(spec=SignalDef)
+        signal2.name = "data"
+        signal2.length = 16
+
+        path_dict = {
+            "tb/input_data": signal1,  # Testbench level
+            "dut/core/data": signal2,  # Internal level
+        }
+
+        result = categorizer.categorize_signals(path_dict)
+
+        # Both should be categorized appropriately
+        assert len(result.outputs) == 1  # tb/input_data as OUTPUT (testbench, multi-bit)
+        assert len(result.internals) == 1  # dut/core/data as INTERNAL (deep hierarchy)

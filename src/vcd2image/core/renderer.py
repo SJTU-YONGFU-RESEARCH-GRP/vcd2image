@@ -7,7 +7,7 @@ from typing import Any
 
 import matplotlib
 
-matplotlib.use('Agg')  # Use non-interactive backend
+matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
@@ -98,10 +98,11 @@ class WaveRenderer:
 
         # Create subplots - one for each signal
         fig, axes = plt.subplots(
-            len(signals), 1,
+            len(signals),
+            1,
             figsize=(12, 2 * len(signals)),
             sharex=True,
-            gridspec_kw={'hspace': 0.3}
+            gridspec_kw={"hspace": 0.3},
         )
 
         # Handle single signal case
@@ -119,7 +120,7 @@ class WaveRenderer:
         # Save the plot
         plt.tight_layout()
         image_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(image_path, dpi=150, bbox_inches='tight')
+        fig.savefig(image_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
 
     def _parse_wavejson(self, wavejson: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
@@ -131,7 +132,7 @@ class WaveRenderer:
         Returns:
             Tuple of (signals list, total time steps).
         """
-        signals = []
+        signals: list[dict[str, Any]] = []
         total_time_steps = 0
 
         if "signal" not in wavejson:
@@ -191,11 +192,7 @@ class WaveRenderer:
                     else:
                         values[i] = "x"
 
-        return {
-            "name": name,
-            "values": values,
-            "is_clock": "p" in wave_str
-        }
+        return {"name": name, "values": values, "is_clock": "p" in wave_str}
 
     def _parse_wave_string(self, wave_str: str) -> list[str]:
         """Parse wave string into value list.
@@ -225,7 +222,9 @@ class WaveRenderer:
 
         return values
 
-    def _plot_single_signal_subplot(self, ax: plt.Axes, signal: dict[str, Any], time_steps: int, is_bottom: bool) -> None:
+    def _plot_single_signal_subplot(
+        self, ax: plt.Axes, signal: dict[str, Any], time_steps: int, is_bottom: bool
+    ) -> None:
         """Plot a single signal in its own subplot with professional digital styling.
 
         Args:
@@ -246,16 +245,16 @@ class WaveRenderer:
         ax.set_ylim(-0.2, 1.2)  # Tighter range for cleaner look
         ax.set_yticks([0, 1])
         ax.set_yticklabels(["0", "1"])
-        ax.set_title(f"{signal_name}", fontsize=11, fontweight='bold', pad=10)
-        ax.grid(True, alpha=0.15, linestyle='-', linewidth=0.8, color='lightgray')
+        ax.set_title(f"{signal_name}", fontsize=11, fontweight="bold", pad=10)
+        ax.grid(True, alpha=0.15, linestyle="-", linewidth=0.8, color="lightgray")
 
         # Professional spine styling
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_linewidth(2.0)
-        ax.spines['bottom'].set_linewidth(2.0)
-        ax.spines['left'].set_color('black')
-        ax.spines['bottom'].set_color('black')
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_linewidth(2.0)
+        ax.spines["bottom"].set_linewidth(2.0)
+        ax.spines["left"].set_color("black")
+        ax.spines["bottom"].set_color("black")
 
         # Remove x-axis labels except for bottom plot
         if not is_bottom:
@@ -281,11 +280,16 @@ class WaveRenderer:
         name = signal["name"].lower()
 
         # Input signals (blue)
-        if any(keyword in name for keyword in ["input", "in", "din", "data_in", "valid_in", "ready_in"]):
+        if any(
+            keyword in name for keyword in ["input", "in", "din", "data_in", "valid_in", "ready_in"]
+        ):
             return "#1f77b4"  # Blue
 
         # Output signals (green)
-        elif any(keyword in name for keyword in ["output", "out", "dout", "data_out", "valid_out", "ready_out"]):
+        elif any(
+            keyword in name
+            for keyword in ["output", "out", "dout", "data_out", "valid_out", "ready_out"]
+        ):
             return "#2ca02c"  # Green
 
         # Clock signals (purple)
@@ -300,7 +304,9 @@ class WaveRenderer:
         else:
             return "#9467bd"  # Purple
 
-    def _plot_signal_data(self, ax: plt.Axes, values: list[str], time_steps: int, color: str) -> None:
+    def _plot_signal_data(
+        self, ax: plt.Axes, values: list[str], time_steps: int, color: str
+    ) -> None:
         """Plot signal data in the given axes with sharp digital transitions.
 
         Args:
@@ -322,26 +328,62 @@ class WaveRenderer:
             elif val in ["0", "1"]:
                 # Regular digital signal - plot as horizontal line with sharp edges
                 numeric_val = 1 if val == "1" else 0
-                ax.plot([t, t + 1], [numeric_val, numeric_val], color=color, linewidth=3.0,
-                       solid_capstyle='butt', solid_joinstyle='miter')
+                ax.plot(
+                    [t, t + 1],
+                    [numeric_val, numeric_val],
+                    color=color,
+                    linewidth=3.0,
+                    solid_capstyle="butt",
+                    solid_joinstyle="miter",
+                )
             elif val == "x":
                 # Unknown state - draw with red X marks
-                ax.plot([t, t + 1], [0.5, 0.5], color='red', marker='x', markersize=8,
-                       linewidth=2, alpha=0.9, linestyle='-')
+                ax.plot(
+                    [t, t + 1],
+                    [0.5, 0.5],
+                    color="red",
+                    marker="x",
+                    markersize=8,
+                    linewidth=2,
+                    alpha=0.9,
+                    linestyle="-",
+                )
             elif val == "z":
                 # High-Z state - draw with gray diamonds at the middle (floating)
-                ax.plot([t, t + 1], [0.5, 0.5], color='gray', marker='D', markersize=6,
-                       linewidth=2, alpha=0.8, linestyle='-')
+                ax.plot(
+                    [t, t + 1],
+                    [0.5, 0.5],
+                    color="gray",
+                    marker="D",
+                    markersize=6,
+                    linewidth=2,
+                    alpha=0.8,
+                    linestyle="-",
+                )
             else:
                 # Handle other values (like data values from multi-bit signals)
                 try:
-                    numeric_val = float(val) if val.replace(".", "").isdigit() else 0.5
-                    ax.plot([t, t + 1], [numeric_val, numeric_val], color=color, linewidth=3.0,
-                           solid_capstyle='butt', solid_joinstyle='miter')
+                    other_numeric_val: float = float(val) if val.replace(".", "").isdigit() else 0.5
+                    ax.plot(
+                        [t, t + 1],
+                        [other_numeric_val, other_numeric_val],
+                        color=color,
+                        linewidth=3.0,
+                        solid_capstyle="butt",
+                        solid_joinstyle="miter",
+                    )
                 except (ValueError, AttributeError):
                     # Fallback for unknown characters
-                    ax.plot([t, t + 1], [0.5, 0.5], color='red', marker='x', markersize=8,
-                           linewidth=2, alpha=0.9, linestyle='-')
+                    ax.plot(
+                        [t, t + 1],
+                        [0.5, 0.5],
+                        color="red",
+                        marker="x",
+                        markersize=8,
+                        linewidth=2,
+                        alpha=0.9,
+                        linestyle="-",
+                    )
 
     def _plot_clock_pulse(self, ax: plt.Axes, t: int, color: str) -> None:
         """Plot a clock pulse (triangular wave) at time t.
@@ -354,15 +396,32 @@ class WaveRenderer:
         # Clock pulse: low->high->low with sharp transitions
         # Low segment (if not at start)
         if t > 0:
-            ax.plot([t, t + 0.5], [0, 0], color=color, linewidth=3.0,
-                   solid_capstyle='butt', solid_joinstyle='miter')
+            ax.plot(
+                [t, t + 0.5],
+                [0, 0],
+                color=color,
+                linewidth=3.0,
+                solid_capstyle="butt",
+                solid_joinstyle="miter",
+            )
         # Rising edge (vertical)
-        ax.plot([t + 0.5, t + 0.5], [0, 1], color=color, linewidth=3.0,
-               solid_capstyle='butt', solid_joinstyle='miter')
+        ax.plot(
+            [t + 0.5, t + 0.5],
+            [0, 1],
+            color=color,
+            linewidth=3.0,
+            solid_capstyle="butt",
+            solid_joinstyle="miter",
+        )
         # High segment
-        ax.plot([t + 0.5, t + 1], [1, 1], color=color, linewidth=3.0,
-               solid_capstyle='butt', solid_joinstyle='miter')
-
+        ax.plot(
+            [t + 0.5, t + 1],
+            [1, 1],
+            color=color,
+            linewidth=3.0,
+            solid_capstyle="butt",
+            solid_joinstyle="miter",
+        )
 
     def _generate_html(self, wavejson: dict[str, Any]) -> str:
         """Generate simple HTML page displaying the WaveJSON data.

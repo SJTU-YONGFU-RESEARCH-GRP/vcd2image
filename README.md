@@ -15,7 +15,7 @@
 
 **Convert VCD (Value Change Dump) files to beautiful timing diagram images**
 
-VCD2Image is a modern Python tool that converts VCD (Value Change Dump) files from digital circuit simulations into professional timing diagram images. It uses WaveDrom, the industry-standard JavaScript library for rendering digital timing diagrams, to generate publication-quality SVG and PNG images.
+VCD2Image is a modern Python tool that converts VCD (Value Change Dump) files from digital circuit simulations into professional timing diagram images. It uses matplotlib to generate publication-quality PNG, SVG, and PDF images with professional digital styling.
 
 ## 📋 Table of Contents
 
@@ -64,9 +64,9 @@ VCD2Image is a modern Python tool that converts VCD (Value Change Dump) files fr
 ## ✨ Features
 
 - **🚀 Fast VCD Processing**: Efficiently parse large VCD files from Verilog/VHDL simulations
-- **🎨 Professional Diagrams**: Generate beautiful timing diagrams using WaveDrom
+- **🎨 Professional Diagrams**: Generate beautiful timing diagrams using matplotlib with professional digital styling
 - **🤖 Auto Plotting**: Intelligent signal categorization and automatic diagram generation
-- **🔧 Flexible Output**: Support for multiple image formats (SVG, PNG, PDF)
+- **🔧 Flexible Output**: Support for multiple image formats (PNG, SVG, PDF) via matplotlib
 - **⚙️ Customizable**: Configurable signal formatting, sampling rates, and diagram styles
 - **📊 Multi-Figure Generation**: Create categorized plots (ports, internal signals, etc.)
 - **🖥️ CLI & API**: Both command-line interface and Python API for integration
@@ -218,11 +218,12 @@ The intelligent categorizer uses pattern matching to identify:
 
 ## 🎨 Output Formats
 
-VCD2Image generates WaveJSON format that can be rendered into multiple image formats:
+VCD2Image generates high-quality timing diagrams directly using matplotlib:
 
-- **SVG**: Scalable vector graphics, perfect for documentation
-- **PNG**: Raster images with transparent backgrounds
-- **PDF**: Vector format for high-quality printing
+- **PNG**: High-resolution raster images with transparent backgrounds, ideal for presentations
+- **SVG**: Scalable vector graphics, perfect for documentation and web use
+- **PDF**: Vector format for high-quality printing and publication
+- **HTML**: Basic HTML output for debugging and inspection (shows JSON data)
 
 ## 🔧 Configuration
 
@@ -282,17 +283,18 @@ class WaveExtractor:
 
 ### WaveRenderer
 
-Renders WaveJSON to images using WaveDrom.
+Renders custom WaveJSON to images using matplotlib with professional digital styling.
 
 ```python
 class WaveRenderer:
-    def __init__(self, skin: str = "default")
+    def __init__(self, skin: str = "default") -> None
     def render_to_image(self, json_file: str, image_file: str) -> int
+    def render_to_html(self, json_file: str, html_file: str) -> int
 ```
 
 ### MultiFigureRenderer
 
-Automatically generates categorized timing diagrams from VCD files with intelligent signal grouping.
+Automatically generates categorized timing diagrams from VCD files using matplotlib and SignalPlotter with intelligent signal grouping and enhanced styling.
 
 ```python
 class MultiFigureRenderer:
@@ -648,7 +650,7 @@ This project is licensed under the CC BY 4.0 License - see the [LICENSE](LICENSE
 
 ## 🙏 Acknowledgments
 
-- [WaveDrom](https://wavedrom.com/) - The amazing timing diagram rendering library
+- [Matplotlib](https://matplotlib.org/) - The comprehensive plotting library that powers our rendering engine
 - Original `vcd2json` implementation that inspired this project
 
 ## 📞 Support

@@ -40,7 +40,7 @@ class SignalSampler:
         # Initialize value and sample dictionaries
         # Note: dict.fromkeys() with mutable defaults shares the same object, so create individually
         value_dict = dict.fromkeys([clock_sid] + signal_sids, "x")
-        sample_dict = {sid: [] for sid in [clock_sid] + signal_sids}
+        sample_dict: dict[str, list[str]] = {sid: [] for sid in [clock_sid] + signal_sids}
 
         logger.debug(f"Sampling signals with clock_sid={clock_sid}, signal_sids={signal_sids}")
         data_count = 0
@@ -88,7 +88,9 @@ class SignalSampler:
 
                 # Sample at regular time intervals instead of just clock edges
                 # This gives a more complete view of signal behavior
-                if self.start_time <= self.now and (self.end_time == 0 or self.now <= self.end_time):
+                if self.start_time <= self.now and (
+                    self.end_time == 0 or self.now <= self.end_time
+                ):
                     # Check if we should sample at this time point
                     # Sample every time unit for now (could be made configurable)
                     should_sample = True  # Sample at every timestamp for complete waveform
