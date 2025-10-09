@@ -109,7 +109,9 @@ class TestSignalPlotter:
 
     @patch("vcd2image.core.parser.VCDParser")
     @patch("vcd2image.core.extractor.WaveExtractor")
-    def test_load_data_wave_extractor_failure_fallback(self, mock_wave_extractor, mock_vcd_parser, tmp_path, capsys) -> None:
+    def test_load_data_wave_extractor_failure_fallback(
+        self, mock_wave_extractor, mock_vcd_parser, tmp_path, capsys
+    ) -> None:
         """Test data loading falls back to synthetic data when WaveExtractor fails."""
         from vcd2image.core.models import SignalDef
 
@@ -447,18 +449,20 @@ class TestSignalPlotter:
         plotter = SignalPlotter("test.vcd")
 
         # Create test data with multiple signal types
-        plotter.data = pd.DataFrame({
-            "test_case": [0, 1, 2, 3],
-            "input1": [0, 1, 0, 1],
-            "enable": [1, 1, 1, 0],  # Enable signal
-            "output1": [1, 0, 1, 0],
-            "counter": [0, 1, 2, 3],  # Counter signal
-            "clock": [0, 1, 0, 1],
-            "clock2": [1, 0, 1, 0],  # Second clock
-            "reset": [1, 1, 0, 0],
-            "internal1": [0, 0, 1, 1],
-            "reg1": [1, 1, 0, 0]
-        })
+        plotter.data = pd.DataFrame(
+            {
+                "test_case": [0, 1, 2, 3],
+                "input1": [0, 1, 0, 1],
+                "enable": [1, 1, 1, 0],  # Enable signal
+                "output1": [1, 0, 1, 0],
+                "counter": [0, 1, 2, 3],  # Counter signal
+                "clock": [0, 1, 0, 1],
+                "clock2": [1, 0, 1, 0],  # Second clock
+                "reset": [1, 1, 0, 0],
+                "internal1": [0, 0, 1, 1],
+                "reg1": [1, 1, 0, 0],
+            }
+        )
 
         plotter.categories = SignalCategory()
         plotter.categories.inputs = ["input1", "enable", "clock", "clock2", "reset"]
@@ -466,7 +470,17 @@ class TestSignalPlotter:
         plotter.categories.clocks = ["clock", "clock2"]  # Multiple clocks
         plotter.categories.resets = ["reset"]
         plotter.categories.internals = ["internal1", "reg1"]
-        plotter.categories.all_signals = ["input1", "enable", "output1", "counter", "clock", "clock2", "reset", "internal1", "reg1"]
+        plotter.categories.all_signals = [
+            "input1",
+            "enable",
+            "output1",
+            "counter",
+            "clock",
+            "clock2",
+            "reset",
+            "internal1",
+            "reg1",
+        ]
 
         # Set up parser for module information
         mock_parser = Mock()
@@ -487,7 +501,9 @@ class TestSignalPlotter:
 
         # Check output signals section (lines 1558-1577)
         assert "### Output Signals (2)" in report
-        assert "| Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |" in report
+        assert (
+            "| Signal | Type | Min | Max | Mean | Std Dev | Unique Values | Description |" in report
+        )
         assert "`output1`" in report
 
     def test_determine_module_type(self) -> None:
@@ -633,7 +649,7 @@ class TestSignalPlotter:
         wavejson = {
             "signal": [
                 {"name": "clock"},
-                {}  # Only 2 signals
+                {},  # Only 2 signals
             ]
         }
 
@@ -726,10 +742,7 @@ class TestSignalPlotter:
 
         plotter = SignalPlotter("test.vcd")
         # Multi-value signal data (bus with values 0, 5, 10)
-        plotter.data = pd.DataFrame({
-            "test_case": [0, 1, 2],
-            "bus_signal": [0, 5, 10]
-        })
+        plotter.data = pd.DataFrame({"test_case": [0, 1, 2], "bus_signal": [0, 5, 10]})
 
         plotter._create_single_enhanced_plot(["bus_signal"], "Test Plot", "test.png", "mixed")
 
@@ -758,7 +771,7 @@ class TestSignalPlotter:
         plotter = SignalPlotter("test.vcd")
         plotter.data = None  # No data available
 
-        with patch.object(plotter.logger, 'error') as mock_error:
+        with patch.object(plotter.logger, "error") as mock_error:
             plotter._create_single_enhanced_plot(["signal1"], "Test Plot", "test.png", "blue")
 
         mock_error.assert_called_with("No data available for plotting")
@@ -803,7 +816,9 @@ class TestSignalPlotter:
 
     @patch("vcd2image.core.extractor.WaveExtractor")
     @patch("vcd2image.core.parser.VCDParser")
-    def test_extract_actual_waveform_data_wave_extractor_failure(self, mock_vcd_parser, mock_wave_extractor, capsys) -> None:
+    def test_extract_actual_waveform_data_wave_extractor_failure(
+        self, mock_vcd_parser, mock_wave_extractor, capsys
+    ) -> None:
         """Test _extract_actual_waveform_data with WaveExtractor failure (lines 182-184)."""
         from vcd2image.core.models import SignalDef
 
@@ -837,8 +852,8 @@ class TestSignalPlotter:
                 {},  # Empty dict
                 [  # Third element is array of signals
                     {"name": "signal1", "wave": "01"},
-                    {"name": "signal2", "wave": "10"}
-                ]
+                    {"name": "signal2", "wave": "10"},
+                ],
             ]
         }
         signal_paths = ["signal1", "signal2", "missing_signal"]
@@ -1044,8 +1059,45 @@ class TestSignalPlotter:
             expected_signals,
             "All Ports and Internal Signals (Enhanced)",
             "all_signals.png",
-            color="mixed"
+            color="mixed",
         )
+
+    def test_add_enhanced_transition_annotations_non_binary(self, caplog) -> None:
+        """Test _add_enhanced_transition_annotations with non-binary signal (line 1157)."""
+        plotter = SignalPlotter("test.vcd")
+
+        # Create mock axis
+        mock_ax = Mock()
+
+        # Create data with non-binary signal (3 unique values: 0, 1, 2)
+        signal_data = pd.Series([0, 1, 2, 1, 0])
+        test_cases = pd.Series(list(range(5)))
+
+        # This should skip annotation for non-binary signals (is_binary=False)
+        plotter._add_enhanced_transition_annotations(
+            mock_ax, test_cases, signal_data, "blue", False
+        )
+
+        # Should not add any annotations for non-binary signal
+        mock_ax.annotate.assert_not_called()
+
+    def test_add_enhanced_transition_annotations_max_limit(self) -> None:
+        """Test _add_enhanced_transition_annotations with max annotations limit (line 1204)."""
+        plotter = SignalPlotter("test.vcd")
+
+        # Create mock axis
+        mock_ax = Mock()
+
+        # Create data with many transitions (more than max_annotations=10)
+        # Alternating pattern creates many transitions
+        signal_data = pd.Series([i % 2 for i in range(50)])  # 50 transitions
+        test_cases = pd.Series(list(range(50)))
+
+        # This should add annotations but stop at max_annotations
+        plotter._add_enhanced_transition_annotations(mock_ax, test_cases, signal_data, "blue", True)
+
+        # Should call annotate at most max_annotations times (5)
+        assert mock_ax.annotate.call_count <= 5
 
     @patch("vcd2image.core.signal_plotter.SignalPlotter._generate_input_ports_plot")
     def test_generate_plots_exception_handling(self, mock_generate_plot, capsys) -> None:
@@ -1091,7 +1143,6 @@ class TestSignalPlotter:
         call2 = mock_create_single.call_args_list[1]
         assert "Test Title (Part 2)" in call2[0][1]  # title
         assert "test_part2.png" in call2[0][2]  # filename
-
 
     @patch("vcd2image.core.signal_plotter.VerilogParser")
     def test_get_signal_width_with_parser(self, mock_verilog_parser) -> None:
@@ -1191,11 +1242,11 @@ class TestSignalPlotter:
             "input": [("clk", 1), ("rst", 1)],
             "output": [("data", 8)],
             "wire": [("internal", 1)],
-            "reg": [("counter", 16)]
+            "reg": [("counter", 16)],
         }
 
         # Mock categorize_signals to avoid full categorization
-        with patch.object(plotter, 'categorize_signals', return_value=True):
+        with patch.object(plotter, "categorize_signals", return_value=True):
             result = plotter._categorize_from_verilog(["clk", "rst", "data", "internal", "counter"])
 
         assert result is True
@@ -1203,7 +1254,9 @@ class TestSignalPlotter:
         mock_parser_instance.parse.assert_called_once()
 
     @patch("vcd2image.core.signal_plotter.VerilogParser")
-    def test_categorize_from_verilog_heuristic_prefixes(self, mock_verilog_parser, tmp_path) -> None:
+    def test_categorize_from_verilog_heuristic_prefixes(
+        self, mock_verilog_parser, tmp_path
+    ) -> None:
         """Test _categorize_from_verilog with heuristic classification for prefix patterns (lines 771, 773)."""
         # Create a mock Verilog file
         verilog_file = tmp_path / "test.v"
@@ -1221,17 +1274,19 @@ class TestSignalPlotter:
             "input": [("clk", 1)],
             "output": [],
             "wire": [],
-            "reg": []
+            "reg": [],
         }
 
         # Mock categorize_signals to avoid full categorization
-        with patch.object(plotter, 'categorize_signals', return_value=True):
-            result = plotter._categorize_from_verilog([
-                "clk",      # In inputs
-                "o_data",   # "o_" prefix -> output (line 771)
-                "r_reg",    # "r_" prefix -> internal (line 773)
-                "unknown"   # No prefix -> unknown classification
-            ])
+        with patch.object(plotter, "categorize_signals", return_value=True):
+            result = plotter._categorize_from_verilog(
+                [
+                    "clk",  # In inputs
+                    "o_data",  # "o_" prefix -> output (line 771)
+                    "r_reg",  # "r_" prefix -> internal (line 773)
+                    "unknown",  # No prefix -> unknown classification
+                ]
+            )
 
         assert result is True
         # Check that categories were set correctly
@@ -1240,7 +1295,9 @@ class TestSignalPlotter:
         assert "unknown" in plotter.categories.inputs  # Default classification for unknown signals
 
     @patch("vcd2image.core.signal_plotter.VerilogParser")
-    def test_categorize_from_verilog_parser_failure(self, mock_verilog_parser, tmp_path, caplog) -> None:
+    def test_categorize_from_verilog_parser_failure(
+        self, mock_verilog_parser, tmp_path, caplog
+    ) -> None:
         """Test _categorize_from_verilog with parser failure."""
         verilog_file = tmp_path / "test.v"
         verilog_file.write_text("invalid verilog")
@@ -1278,13 +1335,17 @@ class TestSignalPlotter:
             plotter._generate_category_jsons()
 
         # Verify WaveExtractor was called for each category
-        assert mock_wave_extractor.call_count == 4  # input_ports, output_ports, all_ports, all_signals
+        assert (
+            mock_wave_extractor.call_count == 4
+        )  # input_ports, output_ports, all_ports, all_signals
 
         # Verify execute was called for each
         assert mock_extractor_instance.execute.call_count == 4
 
     @patch("vcd2image.core.extractor.WaveExtractor")
-    def test_generate_category_jsons_wave_extractor_failure(self, mock_wave_extractor, tmp_path, caplog) -> None:
+    def test_generate_category_jsons_wave_extractor_failure(
+        self, mock_wave_extractor, tmp_path, caplog
+    ) -> None:
         """Test _generate_category_jsons with WaveExtractor failure."""
         plotter = SignalPlotter("test.vcd", "test.v")
 

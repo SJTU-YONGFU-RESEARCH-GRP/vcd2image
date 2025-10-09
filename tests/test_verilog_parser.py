@@ -632,6 +632,7 @@ endmodule
 
         # Mock re.findall to return a match with len == 1
         import re
+
         original_findall = re.findall
 
         def mock_findall(pattern, string, flags=0):
@@ -653,6 +654,7 @@ endmodule
 
         # Mock re.findall to return a match with len == 1
         import re
+
         original_findall = re.findall
 
         def mock_findall(pattern, string, flags=0):
@@ -674,6 +676,7 @@ endmodule
 
         # Mock re.findall to return a match with len == 1
         import re
+
         original_findall = re.findall
 
         def mock_findall(pattern, string, flags=0):
@@ -695,6 +698,7 @@ endmodule
 
         # Mock re.findall to return a match with len == 1
         import re
+
         original_findall = re.findall
 
         def mock_findall(pattern, string, flags=0):

@@ -118,7 +118,7 @@ class TestWaveRenderer:
         image_file = tmp_path / "output.png"
 
         renderer = WaveRenderer()
-        with patch('vcd2image.core.renderer.logger') as mock_logger:
+        with patch("vcd2image.core.renderer.logger") as mock_logger:
             result = renderer.render_to_image(str(json_file), str(image_file))
 
             assert result == 0  # Should succeed but not create image
@@ -167,9 +167,9 @@ class TestWaveRenderer:
                 [  # Time group with multiple signals
                     "10",  # timestamp
                     {"name": "signal1", "wave": "01"},
-                    {"name": "signal2", "wave": "10"}
-                ]
-            ]
+                    {"name": "signal2", "wave": "10"},
+                ],
+            ],
         }
 
         signals, time_steps = renderer._parse_wavejson(wavejson)
@@ -187,7 +187,7 @@ class TestWaveRenderer:
         signal_dict = {
             "name": "test_signal",
             "wave": "=2=3",
-            "data": "2 3"  # Space-separated string
+            "data": "2 3",  # Space-separated string
         }
         result = renderer._parse_signal(signal_dict)
 
@@ -206,7 +206,7 @@ class TestWaveRenderer:
         signal_dict = {
             "name": "test_signal",
             "wave": "=2=3=4",
-            "data": ["2", "3"]  # Only 2 data values for 3 = markers
+            "data": ["2", "3"],  # Only 2 data values for 3 = markers
         }
         result = renderer._parse_signal(signal_dict)
 
