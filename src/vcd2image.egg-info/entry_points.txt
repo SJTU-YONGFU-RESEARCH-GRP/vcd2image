@@ -1,0 +1,2 @@
+[console_scripts]
+vcd2image = vcd2image.cli.main:main
